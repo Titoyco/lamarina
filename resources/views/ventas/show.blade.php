@@ -1,0 +1,1 @@
+<h1> DETALLE DE VENTA </h1>
