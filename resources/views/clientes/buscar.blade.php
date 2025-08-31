@@ -58,9 +58,11 @@
                                 <ul>
                                     @php
                                         $botones = [
+                                            ['url' => route('clientes.show', $cliente), 'texto' => 'Detalles'],
                                             ['url' => route('clientes.edit', $cliente), 'texto' => 'Editar'],
                                             ['url' => '#', 'texto' => 'Bloquear'], // Cambia '#' por la ruta correspondiente
                                             ['url' => '#', 'texto' => 'Autorizados'], // Cambia '#' por la ruta correspondiente
+                                            ['url' => route('clientes.creditos', $cliente), 'texto' => 'Creditos'],
                                             ['url' => route('clientes.movimientos', $cliente), 'texto' => 'Movimientos'],
                                             ['url' => route('clientes.nuevoCredito', $cliente), 'texto' => 'Nuevo Crédito'], // Cambia '#' por la ruta correspondiente
                                         ];

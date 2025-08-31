@@ -1,7 +1,7 @@
 @php
 $botones = [
     ['url' => 'javascript:history.back()', 'texto' => ' < Volver', 'color' => 'bg-gray-500'],
-    ['url' => route('categorias.create'), 'texto' => 'Agregar Categoría', 'color' => 'bg-blue-500'], // Botón para agregar una nueva categoría
+    ['url' => route('productos.categorias.create'), 'texto' => 'Agregar Categoría', 'color' => 'bg-blue-500'], // Botón para agregar una nueva categoría
 ]; 
 @endphp
 
@@ -24,7 +24,7 @@ $botones = [
                 <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
                     Actualizar
                 </button>
-                <a href="{{ route('categorias.index') }}" class="ml-2 px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
+                <a href="{{ route('productos.categorias.index') }}" class="ml-2 px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
                     Cancelar
                 </a>
             </div>

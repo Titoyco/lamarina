@@ -18,6 +18,8 @@
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <p class="text-lg font-semibold mb-4">Seleccione una opción:</p>
+        <p class="text-gray-600">id de usuario: {{ auth()->id() }}</p>
         <!-- Botón Ver Usuarios -->
         <x-button-submit class="w-full sm:w-80" onclick="window.location.href='{{ route('usuarios.index') }}'">
             Ver Usuarios
@@ -29,16 +31,16 @@
         </x-button-submit>
 
         <!-- Botón Ver Categorías de Productos -->
-        <x-button-submit class="w-full sm:w-80" onclick="window.location.href='{{ route('categorias.index') }}'">
+        <x-button-submit class="w-full sm:w-80" onclick="window.location.href='{{ route('productos.categorias.index') }}'">
             Ver Categorías de Productos
         </x-button-submit>
 
         <!-- Botón Ver Subcategorías de Productos -->
-        <x-button-submit class="w-full sm:w-80" onclick="window.location.href='{{ route('subcategorias.index') }}'">
+        <x-button-submit class="w-full sm:w-80" onclick="window.location.href='{{ route('productos.subcategorias.index') }}'">
             Ver Subcategorías de Productos
         </x-button-submit>
 
-                <!-- Botón Ver Subcategorías de Productos -->
+        <!-- Botón Ver Sucursales de Productos -->
         <x-button-submit class="w-full sm:w-80" onclick="window.location.href='{{ route('sucursales.index') }}'">
             Ver Sucursales
         </x-button-submit>

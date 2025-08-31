@@ -91,11 +91,17 @@ class ClienteController extends Controller
         $imprimir = true;
         $creditos_pendientes = $cliente->creditos()->whereNull('fecha_cancelacion')->orderBy('fecha_credito', 'desc')->get();
         $creditos_pagados = $cliente->creditos()->whereNotNull('fecha_cancelacion')->orderBy('fecha_credito', 'desc')->get();
-        return View('clientes.movimientos', compact('cliente', 'creditos_pendientes', 'creditos_pagados', 'imprimir'));
+        return View('clientes.creditos', compact('cliente', 'creditos_pendientes', 'creditos_pagados', 'imprimir'));
     }
 
 
     public function movimientos(Cliente $cliente)
+    {
+
+
+    }
+
+    public function creditos(Cliente $cliente)
     {
         //$cliente = Cliente::findOrFail($id);
 
@@ -111,7 +117,7 @@ class ClienteController extends Controller
 
         //$creditos = $cliente->creditos; // Asumiendo que tienes una relación definida
 
-        return view('clientes.movimientos', compact('cliente', 'creditos_pendientes', 'creditos_pagados', 'deudaTotal'));
+        return view('clientes.creditos', compact('cliente', 'creditos_pendientes', 'creditos_pagados', 'deudaTotal'));
     }
 
     public function imprimirFicha(Cliente $cliente)

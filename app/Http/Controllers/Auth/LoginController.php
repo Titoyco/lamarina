@@ -15,7 +15,12 @@ class LoginController extends Controller
     // Método para registrar un nuevo usuario
     public function register(Request $request)  
     {
-        // FALTA validar los datos
+        // Validar los datos
+        $request->validate([
+            'username' => 'required|string|max:255|unique:users,username',
+            'password' => 'required|string|min:6|confirmed', // Usa password_confirmation en el form
+        ]);
+
         $user = new User();
         $user->username = $request->username;
         $user->password = Hash::make($request->password);
@@ -27,13 +32,13 @@ class LoginController extends Controller
         // Registrar la primera sucursal del usuario en la sesión
         $this->setSucursalActiva($user);
 
-        return redirect()->route('/'); // Redirige a la página principal
+        return redirect()->route('home')->with('success', 'Usuario registrado correctamente'); // Usa el nombre de ruta
     }
 
     // Muestra el formulario de inicio de sesión
     public function showLoginForm()
     {
-        return view('auth.login'); // Asegúrate de tener una vista 'auth.login'
+        return view('auth.login');
     }
 
     // Maneja el inicio de sesión
@@ -41,32 +46,34 @@ class LoginController extends Controller
     {
         // Validar los datos de entrada
         $request->validate([
-            'username' => 'required',
-            'password' => 'required',
+            'username' => 'required|string',
+            'password' => 'required|string',
         ]);
 
         // Intentar autenticar al usuario
         if (Auth::attempt(['username' => $request->username, 'password' => $request->password])) {
-            $user = Auth::user(); // Obtener el usuario autenticado
+            $user = Auth::user();
 
             // Registrar la primera sucursal del usuario en la sesión
             $this->setSucursalActiva($user);
 
             // Autenticación exitosa
-            return redirect()->intended('/'); // Redirige a la ruta deseada
+            return redirect()->intended(route('home'));
         }
 
         // Si la autenticación falla, redirigir de nuevo con un error
         return back()->withErrors([
             'username' => 'ERROR: Las credenciales proporcionadas son incorrectas, intente nuevamente.',
-        ]);
+        ])->withInput($request->only('username'));
     }
 
     // Maneja el cierre de sesión
     public function logout(Request $request)
     {
         Auth::logout();
-        return redirect('/'); // Redirige a la página de inicio de sesión
+        Session::invalidate();
+        Session::regenerateToken();
+        return redirect()->route('login'); // Redirige al login
     }
 
     // Establecer la primera sucursal activa del usuario en la sesión
@@ -75,7 +82,7 @@ class LoginController extends Controller
         // Obtener la primera sucursal asociada al usuario
         $primerSucursal = DB::table('user_sucursales')
             ->where('user_id', $user->id)
-            ->value('sucursal_id'); // Obtener solo el ID de la sucursal
+            ->value('sucursal_id');
 
         // Guardar la sucursal activa en la sesión
         if ($primerSucursal) {

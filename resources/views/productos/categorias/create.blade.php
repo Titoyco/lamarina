@@ -1,7 +1,7 @@
 @php
 $botones = [
     ['url' => 'javascript:history.back()', 'texto' => ' < Volver', 'color' => 'bg-gray-500'],
-    ['url' => route('subcategorias.create'), 'texto' => 'Agregar Subcategoría', 'color' => 'bg-blue-500'], // Botón para agregar una nueva subcategoría
+    ['url' => route('productos.categorias.create'), 'texto' => 'Agregar Categoría', 'color' => 'bg-blue-500'], // Botón para agregar una nueva categoría
 ]; 
 @endphp
 
@@ -11,9 +11,9 @@ $botones = [
             <!-- ACA SE MUESTRAN LOS ERRORES -->
         </x-errores>
 
-        <h1 class="text-3xl font-semibold text-gray-800 mb-6">Agregar Nueva Subcategoría</h1>
+        <h1 class="text-3xl font-semibold text-gray-800 mb-6">Agregar Nueva Categoría</h1>
 
-        <form action="{{ route('subcategorias.store') }}" method="POST">
+        <form action="{{ route('productos.categorias.store') }}" method="POST">
             @csrf
 
             <label for="nombre" class="block text-sm font-medium text-gray-700">Nombre</label>
@@ -23,7 +23,7 @@ $botones = [
                 <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
                     Guardar
                 </button>
-                <a href="{{ route('subcategorias.index') }}" class="ml-2 px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
+                <a href="{{ route('productos.categorias.index') }}" class="ml-2 px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
                     Cancelar
                 </a>
             </div>

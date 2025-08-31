@@ -15,13 +15,13 @@ class CategoriaController extends Controller
     public function index()
     {
         $categorias = ProductosCategoria::orderBy('nombre')->get();
-        return view('productos.categorias', compact('categorias')); // resources/views/productos/categorias.blade.php
+        return view('productos.categorias.index', compact('categorias')); // resources/views/productos/categorias/index.blade.php
     }
 
     public function show($id)
     {
         $categoria = ProductosCategoria::findOrFail($id);
-        return view('categorias.show', compact('categoria'));
+        return view('productos.categorias.show', compact('categoria'));
     }
 
     /**
@@ -31,7 +31,7 @@ class CategoriaController extends Controller
      */
     public function create()
     {
-        return view('productos.create-categoria'); // resources/views/productos/create-categoria.blade.php
+        return view('productos.categorias.create'); // resources/views/productos/categorias/create.blade.php
     }
 
     /**
@@ -48,7 +48,7 @@ class CategoriaController extends Controller
 
         ProductosCategoria::create($request->only('nombre'));
 
-        return redirect()->route('categorias.index')->with('success', 'Categoría creada exitosamente.');
+        return redirect()->route('productos.categorias.index')->with('success', 'Categoría creada exitosamente.');
     }
 
     /**
@@ -61,7 +61,7 @@ class CategoriaController extends Controller
     {
         $categoria = ProductosCategoria::findOrFail($id);
 
-        return view('productos.edit-categoria', compact('categoria')); // resources/views/productos/edit-categoria.blade.php
+        return view('productos.categorias.edit', compact('categoria')); // resources/views/productos/categorias/edit.blade.php
     }
 
     /**
@@ -80,7 +80,7 @@ class CategoriaController extends Controller
         $categoria = ProductosCategoria::findOrFail($id);
         $categoria->update($request->only('nombre'));
 
-        return redirect()->route('categorias.index')->with('success', 'Categoría actualizada exitosamente.');
+        return redirect()->route('productos.categorias.index')->with('success', 'Categoría actualizada exitosamente.');
     }
 
     /**
@@ -94,6 +94,6 @@ class CategoriaController extends Controller
         $categoria = ProductosCategoria::findOrFail($id);
         $categoria->delete();
 
-        return redirect()->route('categorias.index')->with('success', 'Categoría eliminada exitosamente.');
+        return redirect()->route('productos.categorias.index')->with('success', 'Categoría eliminada exitosamente.');
     }
 }

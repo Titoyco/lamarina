@@ -41,27 +41,27 @@ $botones = [
             </div>
             <div class="flex items-center space-x-4">
                 <label class="text-sm font-medium text-gray-700">Banco:</label>
-                <span class="text-sm text-gray-900">{{ $cliente->banco }}</span>
+                <span class="text-sm text-gray-900">{{ $cliente->banco ?? 'No disponible'  }}</span>
             </div>
             <div class="flex items-center space-x-4">
                 <label class="text-sm font-medium text-gray-700">CBU:</label>
-                <span class="text-sm text-gray-900">{{ $cliente->cbu }}</span>
+                <span class="text-sm text-gray-900">{{ $cliente->cbu  ?? 'No disponible' }}</span>
             </div>
             <div class="flex items-center space-x-4">
                 <label class="text-sm font-medium text-gray-700">Teléfono 1:</label>
-                <span class="text-sm text-gray-900">{{ $cliente->tel1 }}</span>
+                <span class="text-sm text-gray-900">{{ $cliente->tel1  ?? 'No disponible' }}</span>
             </div>
             <div class="flex items-center space-x-4">
                 <label class="text-sm font-medium text-gray-700">Teléfono 2:</label>
-                <span class="text-sm text-gray-900">{{ $cliente->tel2 }}</span>
+                <span class="text-sm text-gray-900">{{ $cliente->tel2  ?? 'No disponible' }}</span>
             </div>
             <div class="flex items-center space-x-4">
                 <label class="text-sm font-medium text-gray-700">Email:</label>
-                <span class="text-sm text-gray-900">{{ $cliente->email }}</span>
+                <span class="text-sm text-gray-900">{{ $cliente->email  ?? 'No disponible' }}</span>
             </div>
             <div class="flex items-center space-x-4">
                 <label class="text-sm font-medium text-gray-700">Dirección:</label>
-                <span class="text-sm text-gray-900">{{ $cliente->direccion }}</span>
+                <span class="text-sm text-gray-900">{{ $cliente->direccion  ?? 'No disponible' }}</span>
             </div>
             <div class="flex items-center space-x-4">
                 <label class="text-sm font-medium text-gray-700">Provincia:</label>
@@ -73,27 +73,27 @@ $botones = [
             </div>
             <div class="flex items-center space-x-4">
                 <label class="text-sm font-medium text-gray-700">Tipo de Haber:</label>
-                <span class="text-sm text-gray-900">{{ $cliente->haber->nombre }}</span>
+                <span class="text-sm text-gray-900">{{ $cliente->haber->nombre  ?? 'No disponible' }}</span>
             </div>
             <div class="flex items-center space-x-4">
                 <label class="text-sm font-medium text-gray-700">Saldo:</label>
-                <span class="text-sm text-gray-900">{{ $cliente->saldo }}</span>
+                <span class="text-sm text-gray-900">{{ $cliente->saldo  ?? 'No disponible' }}</span>
             </div>
             <div class="flex items-center space-x-4">
                 <label class="text-sm font-medium text-gray-700">Límite:</label>
-                <span class="text-sm text-gray-900">{{ $cliente->limite }}</span>
+                <span class="text-sm text-gray-900">{{ $cliente->limite  ?? 'No disponible' }}</span>
             </div>
             <div class="flex items-center space-x-4">
                 <label class="text-sm font-medium text-gray-700">Sucursal:</label>
-                <span class="text-sm text-gray-900">{{ $cliente->sucursal }}</span>
+                <span class="text-sm text-gray-900">{{ $cliente->sucursal  ?? 'No disponible' }}</span>
             </div>
             <div class="flex items-center space-x-4">
                 <label class="text-sm font-medium text-gray-700">Máximo de Cuotas:</label>
-                <span class="text-sm text-gray-900">{{ $cliente->max_cuotas }}</span>
+                <span class="text-sm text-gray-900">{{ $cliente->max_cuotas  ?? 'No disponible' }}</span>
             </div>
             <div class="flex items-center space-x-4">
                 <label class="text-sm font-medium text-gray-700">Observaciones:</label>
-                <p class="text-sm text-gray-900">{{ $cliente->obs }}</p>
+                <p class="text-sm text-gray-900">{{ $cliente->obs  ?? 'No disponible' }}</p>
             </div>
             <br><hr/>
                 <div>
@@ -101,18 +101,18 @@ $botones = [
     
                         <div class="flex items-center space-x-4">
                             <label class="text-sm font-medium text-gray-700">Tipo de Familiar:</label>
-                            <span class="text-sm text-gray-900">{{ $cliente->tipo_familiar }}</span>
+                            <span class="text-sm text-gray-900">{{ $cliente->tipo_familiar  ?? 'No disponible'  }}</span>
                         </div>
                         
                         <div class="flex items-center space-x-4">
                             <label class="text-sm font-medium text-gray-700">Familiar:</label>
-                            <span class="text-sm text-gray-900">{{ $cliente->familiar }}</span>
+                            <span class="text-sm text-gray-900">{{ $cliente->familiar  ?? 'No disponible' }}</span>
                         </div>
     
                         
                         <div class="flex items-center space-x-4">
                             <label class="text-sm font-medium text-gray-700">Dirección:</label>
-                            <span class="text-sm text-gray-900">{{ $cliente->direccion_familiar }}</span>
+                            <span class="text-sm text-gray-900">{{ $cliente->direccion_familiar  ?? 'No disponible' }}</span>
                         </div>
     
                         <div class="flex items-center space-x-4">
@@ -127,12 +127,12 @@ $botones = [
     
                         <div class="flex items-center space-x-4">
                             <label class="text-sm font-medium text-gray-700">Email:</label>
-                            <span class="text-sm text-gray-900">{{ $cliente->email_familiar }}</span>
+                            <span class="text-sm text-gray-900">{{ $cliente->email_familiar  ?? 'No disponible' }}</span>
                         </div>
     
                         <div class="flex items-center space-x-4">
                             <label class="text-sm font-medium text-gray-700">Teléfono:</label>
-                            <span class="text-sm text-gray-900">{{ $cliente->tel_familiar }}</span>
+                            <span class="text-sm text-gray-900">{{ $cliente->tel_familiar ?? 'No disponible'  }}</span>
                         </div>
                     </div>
                     <br><hr/>
@@ -141,12 +141,12 @@ $botones = [
     
                         <div class="flex items-center space-x-4">
                             <label class="text-sm font-medium text-gray-700">Trabajo:</label>
-                            <span class="text-sm text-gray-900">{{ $cliente->trabajo }}</span>
+                            <span class="text-sm text-gray-900">{{ $cliente->trabajo  ?? 'No disponible' }}</span>
                         </div>
     
                         <div class="flex items-center space-x-4">
                             <label class="text-sm font-medium text-gray-700">Dirección:</label>
-                            <span class="text-sm text-gray-900">{{ $cliente->direccion_trabajo }}</span>
+                            <span class="text-sm text-gray-900">{{ $cliente->direccion_trabajo  ?? 'No disponible' }}</span>
                         </div>
     
                         <div class="flex items-center space-x-4">
@@ -161,7 +161,7 @@ $botones = [
     
                         <div class="flex items-center space-x-4">
                             <label class="text-sm font-medium text-gray-700">Teléfono Trabajo:</label>
-                            <span class="text-sm text-gray-900">{{ $cliente->tel_trabajo }}</span>
+                            <span class="text-sm text-gray-900">{{ $cliente->tel_trabajo ?? 'No disponible'  }}</span>
                         </div>
                 </div>
     

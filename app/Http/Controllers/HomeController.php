@@ -10,4 +10,19 @@ class HomeController extends Controller
     {
          return view('home');
     }
+
+
+
+    public function testAuth()
+{
+    dd([
+        'auth' => auth(),
+        'user' => auth()->user()->toArray(), // Convert user to array for better readability
+        'id' => auth()->id(),
+
+    ]);
 }
+
+}
+
+

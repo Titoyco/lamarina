@@ -10,12 +10,12 @@ class Tipo_creditoController extends Controller
     public function index()
     {
         $tipos = Tipo_credito::all();
-        return view('tipo_creditos.index', compact('tipos'));
+        return view('creditos.tipo_creditos.index', compact('tipos'));
     }
 
     public function create()
     {
-        return view('tipo_creditos.create');
+        return view('creditos.tipo_creditos.create');
     }
 
     public function store(Request $request)
@@ -33,17 +33,17 @@ class Tipo_creditoController extends Controller
 
         Tipo_credito::create($request->only('nombre', 'codigo'));
 
-        return redirect()->route('tipo_credito.index')->with('success', 'Tipo de crédito creado correctamente');
+        return redirect()->route('creditos.tipo_credito.index')->with('success', 'Tipo de crédito creado correctamente');
     }
 
     public function show(Tipo_credito $tipo_credito)
     {
-        return view('tipo_creditos.show', compact('tipo_credito'));
+        return view('creditos.tipo_creditos.show', compact('tipo_credito'));
     }
 
     public function edit(Tipo_credito $tipo_credito)
     {
-        return view('tipo_creditos.edit', compact('tipo_credito'));
+        return view('creditos.tipo_creditos.edit', compact('tipo_credito'));
     }
 
     public function update(Request $request, Tipo_credito $tipo_credito)
@@ -52,7 +52,7 @@ class Tipo_creditoController extends Controller
             'nombre' => 'required|string|max:255',
         ]);
         $tipo_credito->update($request->only('nombre'));
-        return redirect()->route('tipo_credito.index')->with('success', 'Tipo de crédito actualizado correctamente');
+        return redirect()->route('creditos.tipo_credito.index')->with('success', 'Tipo de crédito actualizado correctamente');
     }
 
     // No implementar destroy para no permitir eliminar

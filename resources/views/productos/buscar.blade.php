@@ -43,7 +43,7 @@
                             'categoria' => 'Categoría',
                             'subcategoria' => 'Subcategoría',
                             'precio_venta' => 'Precio',
-                            'stock' => 'Stk'
+                            'stock' => 'Stk'  // Muestra el nombre de la sucursal activa (' . $sucursalActiva->nombre . ')
                         ];
                         $sort_order = $sort_order === 'asc' ? 'desc' : 'asc';
                     @endphp
@@ -60,14 +60,20 @@
             </thead>
             <tbody>
                 @foreach($productos as $producto)
+                    @php
+                        // Obtener el stock de la sucursal activa
+                        $stockSucursalActiva = $producto->sucursales->firstWhere('id', $sucursalActiva->id)?->pivot->stock ?? 0;
+                         // Obtener el precio de la sucursal activa
+                        $precioSucursalActiva = $producto->sucursales->firstWhere('id', $sucursalActiva->id)?->pivot->precio_venta ?? 0;
+                    @endphp
                     
                     <tr class="hover:border hover:border-gray-500 hover:bg-slate-400 transition duration-200 text-xs">
-                        <td class="border border-gray-200 px-2 py-2 w-28"><a href="{{ route('productos.show', $producto) }}">{{ $producto->codigo }}</a></td>
+                        <td class="border border-gray-200 px-2 py-2 w-28">{{ $producto->codigo }}</td>
                         <td class="border border-gray-200 px-2 py-2 w-96">{{ $producto->descripcion }}</td>
                         <td class="border border-gray-200 px-2 py-2 w-48">{{ $producto->categoria->nombre }}</td>
                         <td class="border border-gray-200 px-2 py-2 w-48">{{ $producto->subcategoria->nombre }}</td>
-                        <td class="border border-gray-200 px-2 py-2 w-20">$ {{ $producto->precio_venta }}</td>
-                        <td class="border border-gray-200 px-2 py-2 w-14">{{ $producto->stock }}</td>
+                        <td class="border border-gray-200 px-2 py-2 w-20">$ {{ $precioSucursalActiva }}</td>
+                        <td class="border border-gray-200 px-2 py-2 w-14">{{ $stockSucursalActiva }}</td>  <!-- Muestra el stock de la sucursal activa -->
                         <td class="border border-gray-200 px-4 py-2 w-24 justify-center items-center relative">
                             <div class="flex justify-center items-center">
                             <button 
@@ -82,9 +88,10 @@
                                 <ul>
                                     @php
                                         $botones = [
+                                            ['url' => route('productos.show', $producto), 'texto' => 'Mostrar'],
                                             ['url' => route('productos.edit', $producto), 'texto' => 'Editar'],
                                             ['url' => route('productos.barcode', $producto), 'texto' => 'Imprimir Etiqueta'], // Cambia '#' por la ruta correspondiente
-                                            ['url' => '#', 'texto' => 'Modificar Stock'], // Cambia '#' por la ruta correspondiente
+                                            ['url' => route('productos.stock.modificar.form', $producto->id), 'texto' => 'Modificar Stock'], // Cambia '#' por la ruta correspondiente
                                         ];
                                     @endphp
                                     @foreach ($botones as $boton)
@@ -113,7 +120,6 @@
                             </div>
                         </td>
                     </tr>
-                
                 @endforeach
             </tbody>
         </table>
@@ -123,7 +129,6 @@
     <div class="text-xs mt-4">
         {{ $productos->links() }}
     </div>
-
 @endif
 
 <script>

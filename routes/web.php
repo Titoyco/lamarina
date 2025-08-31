@@ -17,11 +17,15 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\SistemaController;
 use App\Http\Controllers\PermisosController;
 use App\Http\Controllers\SucursalController;
+use App\Http\Controllers\StockController;
 use App\Models\Usuario;
 use App\Models\Clientes;
 
 
 Route::middleware(['auth', 'check.route.permission'])->group(function () {
+
+    // Rutas para la gestión de usuarios
+    Route::get('/testuser', [HomeController::class, 'testAuth'])->name('test.auth'); // Ruta de prueba para autenticación
     // Usuarios - Admin
     Route::get('/usuarios', [UserController::class, 'index'])->name('usuarios.index'); // Listar usuarios
     Route::get('/usuarios/create', [UserController::class, 'create'])->name('usuarios.create'); // Formulario para agregar usuario
@@ -34,22 +38,28 @@ Route::middleware(['auth', 'check.route.permission'])->group(function () {
 
     Route::delete('/usuarios/{user}', [UserController::class, 'destroy'])->name('usuarios.destroy'); // Borrar usuario
 
-    Route::get('/', [HomeController::class, 'index'])->name('index');
-    Route::get('/clientes',[ClienteController::class, 'index'])->name('clientes.index');
-    Route::post('/clientes',[ClienteController::class, 'Buscar'])->name('clientes.buscar');
-    Route::get('/clientes/create',[ClienteController::class, 'create'])->name('clientes.create');
-    Route::get('/clientes/search',[ClienteController::class, 'search'])->name('clientes.search');
-    Route::get('/clientes/searchdni',[ClienteController::class, 'searchdni'])->name('clientes.searchdni');
-    Route::post('/clientes/store',[ClienteController::class, 'store'])->name('clientes.store');
-    Route::get('/clientes/{cliente}',[ClienteController::class, 'show'])->name('clientes.show');
-    Route::get('/clientes/{cliente}/edit',[ClienteController::class, 'edit'])->name('clientes.edit');
-    Route::put('/clientes/{cliente}',[ClienteController::class, 'update'])->name('clientes.update');
-    Route::get('/clientes/{cliente}/movimientos', [ClienteController::class, 'movimientos'])->name('clientes.movimientos');
-    Route::get('/clientes/{cliente}/movimientos/imprimir', [ClienteController::class, 'imprimirMovimientos'])->name('clientes.imprimirMovimientos');
-    Route::get('/clientes/{cliente}/exportarFicha', [ClienteController::class, 'exportarFicha'])->name('clientes.exportarFicha');
-    Route::get('/clientes/{cliente}/imprimirFicha', [ClienteController::class, 'imprimirFicha'])->name('clientes.imprimirFicha');
-    Route::get('/clientes/{cliente}/nuevoCredito', [ClienteController::class, 'nuevoCredito'])->name('clientes.nuevoCredito');
-    Route::get('/clientes/{cliente}/exportar-movimientos', [ClienteController::class, 'exportarMovimientos'])->name('clientes.exportarMovimientos');
+    Route::get('/', [HomeController::class, 'index'])->name('home'); // Página de inicio
+
+
+    // Rutas para clientes
+    Route::prefix('clientes')->name('clientes.')->group(function () {
+        Route::get('/',[ClienteController::class, 'index'])->name('index');
+        Route::post('/',[ClienteController::class, 'Buscar'])->name('buscar');
+        Route::get('/create',[ClienteController::class, 'create'])->name('create');
+        Route::get('/search',[ClienteController::class, 'search'])->name('search');
+        Route::get('/searchdni',[ClienteController::class, 'searchdni'])->name('searchdni');
+        Route::post('/store',[ClienteController::class, 'store'])->name('store');
+        Route::get('/{cliente}',[ClienteController::class, 'show'])->name('show');
+        Route::get('/{cliente}/edit',[ClienteController::class, 'edit'])->name('edit');
+        Route::put('/{cliente}',[ClienteController::class, 'update'])->name('update');
+        Route::get('/{cliente}/movimientos', [ClienteController::class, 'movimientos'])->name('movimientos');
+        Route::get('/{cliente}/creditos', [ClienteController::class, 'creditos'])->name('creditos');
+        Route::get('/{cliente}/movimientos/imprimir', [ClienteController::class, 'imprimirMovimientos'])->name('imprimirMovimientos');
+        Route::get('/{cliente}/exportarFicha', [ClienteController::class, 'exportarFicha'])->name('exportarFicha');
+        Route::get('/{cliente}/imprimirFicha', [ClienteController::class, 'imprimirFicha'])->name('imprimirFicha');
+        Route::get('/{cliente}/nuevoCredito', [ClienteController::class, 'nuevoCredito'])->name('nuevoCredito');
+        Route::get('/{cliente}/exportar-movimientos', [ClienteController::class, 'exportarMovimientos'])->name('exportarMovimientos');
+    });
 
     Route::get('/proveedores', [ProveedorController::class, 'index'])->name('proveedores.index');
     Route::get('/proveedores/{id}', [ProveedorController::class, 'show'])->name('proveedores.show');
@@ -74,28 +84,57 @@ Route::middleware(['auth', 'check.route.permission'])->group(function () {
     //Route::delete('/ventas/{id}', [VentaController::class, 'destroy'])->name('ventas.destroy');
 
 
-    // Rutas para categorías
-    Route::resource('/categorias', CategoriaController::class);
 
-    // Rutas para subcategorías
-    Route::resource('/subcategorias', SubcategoriaController::class);
 
     // Rutas para el CRUD de sucursales (sin destroy)
     Route::resource('sucursales', App\Http\Controllers\SucursalController::class)
     ->parameters(['sucursales' => 'sucursal'])
     ->except(['destroy']);
 
-    Route::resource('tipo_credito', App\Http\Controllers\Tipo_creditoController::class)
+    Route::resource('creditos/tipo_credito', App\Http\Controllers\Tipo_creditoController::class)
     ->parameters(['tipo_credito' => 'tipo_credito'])
     ->except(['destroy']);
 
 
     // Rutas para productos
-    Route::get('productos/barcode/{id}', [ProductoController::class, 'generateBarcode'])->name('productos.barcode');;
-    Route::get('/productos/search', [ProductoController::class, 'search'])->name('productos.search');
-    Route::get('/productos/searchcod', [ProductoController::class, 'searchcod'])->name('productos.searchcod');
-    Route::resource('/productos', ProductoController::class);
-    
+    // En routes/web.php
+
+    Route::prefix('productos')->name('productos.')->group(function () {
+                // Rutas para categorías
+        Route::resource('/categorias', CategoriaController::class)
+            ->parameters(['categorias' => 'categoria']);
+
+        // Rutas para subcategorías
+        Route::resource('/subcategorias', SubcategoriaController::class)
+            ->parameters(['subcategorias' => 'subcategoria']);
+
+        
+        // CRUD principales
+        Route::resource('/', ProductoController::class)
+            ->parameters(['' => 'producto']);
+
+        // Utilidades
+        Route::get('/barcode/{id}', [ProductoController::class, 'generateBarcode'])->name('barcode');
+        Route::get('/search', [ProductoController::class, 'search'])->name('search');
+        Route::get('/searchcod', [ProductoController::class, 'searchcod'])->name('searchcod');
+
+        // Stock
+        Route::post('/{id}/stock/ingresar', [StockController::class, 'ingresarStock'])->name('stock.ingresar');
+        Route::get('/{id}/stock/modificar', [StockController::class, 'modificarStockForm'])->name('stock.modificar.form');
+        Route::put('/{id}/stock/modificar', [StockController::class, 'modificarStock'])->name('stock.modificar');
+        Route::post('/{id}/stock/transferir', [StockController::class, 'transferirStock'])->name('stock.transferir');
+        Route::get('/stock/bajo/lista', [StockController::class, 'productosStockBajo'])->name('stock.bajo');
+
+
+    });
+
+    // Rutas API para obtener información de stock
+    Route::prefix('api/productos')->name('api.productos.')->group(function () {
+        Route::get('/{id}/stock-sucursales', [ProductoController::class, 'getStockPorSucursales'])->name('stock-sucursales');
+    });
+
+
+
 
     Route::get('/creditos', [CreditoController::class, 'index'])->name('creditos.index');
     Route::get('/creditos/pagare/{id}', [CreditoController::class, 'imprimirPagare'])->name('creditos.imprimirPagare');
@@ -131,19 +170,3 @@ Route::middleware(['auth', 'check.route.permission'])->group(function () {
     Route::get('/localidades/{provinciaId}', [LocalidadController::class, 'getLocalidades'])->name('localidades');
 
 
-// Otras rutas para recuperación de contraseña, verificación de correo electrónico, etc.
-/*
-
-Route::get('/cliente', function ($dni){
-    $clientes = Clientes::where('dni', $dni)->get();
-    return $clientes;
-});
-//Route::view('/', 'app-layout')->name('principal');
-Route::get('/cliente/{id}', function ($dni){
-
-    $clientes = Clientes::where('dni', $dni)->get();
-
-    return $clientes;
-
-});
-*/

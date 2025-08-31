@@ -32,7 +32,7 @@
         <!-- Encabezado -->
         <div class="flex justify-between items-center">
             <img src="{{ asset('images/logo.png') }}" alt="Logo" class="h-[8mm] max-w-[20mm]">
-            <div class="text-lg font-bold text-right">${{ number_format($producto->precio_venta, 2) }}</div>
+            <div class="text-lg font-bold text-right">{{ $precio_venta !== null ? '$'.number_format($precio_venta, 2)  : 'No disponible' }}</div> 
         </div>
 
         <!-- Contenido principal -->

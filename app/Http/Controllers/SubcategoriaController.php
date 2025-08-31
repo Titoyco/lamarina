@@ -15,7 +15,7 @@ class SubcategoriaController extends Controller
     public function index()
     {
         $subcategorias = ProductosSubcategoria::orderBy('nombre')->get();
-        return view('productos.subcategorias', compact('subcategorias')); // resources/views/productos/subcategorias.blade.php
+        return view('productos.subcategorias.index', compact('subcategorias')); // resources/views/productos/subcategorias/index.blade.php
     }
 
     /**
@@ -25,7 +25,7 @@ class SubcategoriaController extends Controller
      */
     public function create()
     {
-        return view('productos.create-subcategoria'); // resources/views/productos/create-subcategoria.blade.php
+        return view('productos.subcategorias.create'); // resources/views/productos/create-subcategoria.blade.php
     }
 
     /**
@@ -42,7 +42,7 @@ class SubcategoriaController extends Controller
 
         ProductosSubcategoria::create($request->only('nombre'));
 
-        return redirect()->route('subcategorias.index')->with('success', 'Subcategoría creada exitosamente.');
+        return redirect()->route('sub')->with('success', 'Subcategoría creada exitosamente.');
     }
 
     /**
@@ -54,7 +54,7 @@ class SubcategoriaController extends Controller
     public function edit($id)
     {
         $subcategoria = ProductosSubcategoria::findOrFail($id);
-        return view('productos.edit-subcategoria', compact('subcategoria')); // resources/views/productos/edit-subcategoria.blade.php
+        return view('productos.subcategorias.edit', compact('subcategoria')); // resources/views/productos/edit-subcategoria.blade.php
     }
 
     /**
@@ -73,7 +73,7 @@ class SubcategoriaController extends Controller
         $subcategoria = ProductosSubcategoria::findOrFail($id);
         $subcategoria->update($request->only('nombre'));
 
-        return redirect()->route('subcategorias.index')->with('success', 'Subcategoría actualizada exitosamente.');
+        return redirect()->route('sub')->with('success', 'Subcategoría actualizada exitosamente.');
     }
 
     /**
@@ -87,6 +87,6 @@ class SubcategoriaController extends Controller
         $subcategoria = ProductosSubcategoria::findOrFail($id);
         $subcategoria->delete();
 
-        return redirect()->route('subcategorias.index')->with('success', 'Subcategoría eliminada exitosamente.');
+        return redirect()->route('productos.subcategorias.index')->with('success', 'Subcategoría eliminada exitosamente.');
     }
 }
