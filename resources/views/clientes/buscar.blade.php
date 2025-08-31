@@ -3,13 +3,22 @@
 
     <!-- Formulario de búsqueda -->
     <form action="{{ route('clientes.index') }}" method="GET" class="flex flex-col sm:flex-row w-full space-y-2 sm:space-y-0 sm:space-x-2">
+        @csrf
         <input 
             type="text" 
             name="query" 
             placeholder="Buscar por nombre o DNI" 
             class="border border-gray-300 rounded-md p-2 w-full sm:w-80" 
-            required
         >
+            <!-- Agrega el combo de sucursal -->
+    <select name="sucursal_id" class="border border-gray-300 rounded-md p-2 w-32">
+        <option value="">Todos</option>
+        @foreach(\App\Models\Sucursal::orderBy('nombre')->get() as $sucursal)
+            <option value="{{ $sucursal->id }}" {{ request('sucursal_id') == $sucursal->id ? 'selected' : '' }}>
+                {{ $sucursal->nombre }}
+            </option>
+        @endforeach
+    </select>
         <x-button-submit>
             BUSCAR
         </x-button-submit>
@@ -35,6 +44,7 @@
                     <th class="border border-gray-200 px-4 py-2 w-24"> </th>
                     <th class="border border-gray-200 px-4 py-2 w-32">DNI</th>
                     <th class="border border-gray-200 px-4 py-2 w-max">Nombre</th>
+                    <th class="border border-gray-200 px-4 py-2 w-max">Sucursal</th>
                     <th class="border border-gray-200 px-4 py-2 w-48">Acciones</th>
                 </tr>
             </thead>
@@ -44,6 +54,7 @@
                         <td class="border border-gray-200 px-4 py-2">Titular</td>
                         <td class="border border-gray-200 px-4 py-2">{{ $cliente->dni }}</td>
                         <td class="border border-gray-200 px-4 py-2">{{ $cliente->nombre }}</td>
+                        <td class="border border-gray-200 px-4 py-2">{{ ($cliente->sucursal)->nombre ?? 'N/A' }}</td>
                         <td class="border border-gray-200 px-4 py-2 w-48 justify-center items-center relative">
                             <div class="flex justify-center items-center">
                                 <button 

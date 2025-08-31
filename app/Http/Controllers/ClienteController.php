@@ -129,20 +129,33 @@ class ClienteController extends Controller
     {
         // Inicializa la variable $clientes como una colección vacía
         $clientes = collect();
-    
+        $sucursal_id = $request->input('sucursal_id'); // recibe el ID de la sucursal
         // Verifica si hay una consulta de búsqueda
 
             $query = $request->input('query');
+
+            $clientesQuery = Cliente::with('sucursal')
+                ->where(function ($q) use ($query) {
+                    $q->where('nombre', 'LIKE', "%{$query}%")
+                    ->orWhere('dni', 'LIKE', "%{$query}%");
+                });
+
+                // Si seleccionaron una sucursal, filtra
+                if (!empty($sucursal_id)) {
+                    $clientesQuery->where('id_sucursal', $sucursal_id);
+                }
+
     
             // Realiza la búsqueda en tu modelo de Cliente
-            $clientes = Cliente::where('nombre', 'LIKE', "%{$query}%")
-                ->orWhere('dni', 'LIKE', "%{$query}%")
+            $clientes = $clientesQuery
                 ->orderBy('nombre', 'asc')
                 ->paginate(20)  // Esto devuelve una colección dividida en paginas de 20
                 ->appends(['query' => $query]); // Mantiene el parámetro de búsqueda en la paginación
         
     
         return view('clientes.index', compact('clientes'));
+        //return $clientes;
+
     }
 
     public function showFormBuscar()

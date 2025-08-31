@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('nombre');
             $table->integer('medio_pago_preferido')->default(0);
             $table->string('cbu', 25)->nullable();
-            $table->foreignId('sucursal')->constrained('sucursales')->onDelete('cascade'); // Clave foránea a sucursales
+            $table->foreignId('id_sucursal')->constrained('sucursales')->onDelete('cascade'); // Clave foránea a sucursales
             $table->foreignId('tipo_haber')->constrained('tipo_haberes')->onDelete('cascade'); // Clave foránea a tipo_haberes
             $table->decimal('saldo', 10, 0)->default(0);
             $table->double('limite')->default(0);

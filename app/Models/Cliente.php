@@ -64,4 +64,8 @@ class Cliente extends Model
         {
             return $this->hasMany(Credito::class, 'id_cliente');
         }
+        public function sucursal()
+        {
+            return $this->belongsTo(Sucursal::class, 'id_sucursal');
+        }
 }
