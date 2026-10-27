@@ -8,7 +8,6 @@
             name="query" 
             placeholder="Buscar por código, descripción, categoría, subcategoría o precio" 
             class="border border-gray-300 rounded-md p-2 w-full sm:w-80" 
-            required
         >
         <x-button-submit>
             BUSCAR
@@ -43,7 +42,8 @@
                             'categoria' => 'Categoría',
                             'subcategoria' => 'Subcategoría',
                             'precio_venta' => 'Precio',
-                            'stock' => 'Stk'  // Muestra el nombre de la sucursal activa (' . $sucursalActiva->nombre . ')
+                            'stock' => 'Stk',  // Muestra el nombre de la sucursal activa (' . $sucursalActiva->nombre . ')
+                            'stock_total' => 'Stk Total' // Stock total
                         ];
                         $sort_order = $sort_order === 'asc' ? 'desc' : 'asc';
                     @endphp
@@ -65,6 +65,7 @@
                         $stockSucursalActiva = $producto->sucursales->firstWhere('id', $sucursalActiva->id)?->pivot->stock ?? 0;
                          // Obtener el precio de la sucursal activa
                         $precioSucursalActiva = $producto->sucursales->firstWhere('id', $sucursalActiva->id)?->pivot->precio_venta ?? 0;
+                        $stockTotal = $producto->getStockTotal(); // Obtener el stock total
                     @endphp
                     
                     <tr class="hover:border hover:border-gray-500 hover:bg-slate-400 transition duration-200 text-xs">
@@ -74,6 +75,7 @@
                         <td class="border border-gray-200 px-2 py-2 w-48">{{ $producto->subcategoria->nombre }}</td>
                         <td class="border border-gray-200 px-2 py-2 w-20">$ {{ $precioSucursalActiva }}</td>
                         <td class="border border-gray-200 px-2 py-2 w-14">{{ $stockSucursalActiva }}</td>  <!-- Muestra el stock de la sucursal activa -->
+                        <td class="border border-gray-200 px-2 py-2 w-14">{{ $stockTotal }}</td>  <!-- Muestra el stock total -->
                         <td class="border border-gray-200 px-4 py-2 w-24 justify-center items-center relative">
                             <div class="flex justify-center items-center">
                             <button 
@@ -137,8 +139,8 @@
         const nuevaVentana = window.open(url, '_blank', 'width=800,height=600');
 
         // Espera a que la nueva ventana cargue completamente antes de ejecutar la impresión
-        nuevaVentana.onload = function () {
+        /*nuevaVentana.onload = function () {
             nuevaVentana.print();
-        };
+        };*/
     }
 </script>

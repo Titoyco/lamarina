@@ -172,7 +172,7 @@ class ProductoController extends Controller
     // Mostrar un producto específico con su stock por sucursales
     public function show($id)
     {
-        $producto = Producto::with(['categoria', 'subcategoria', 'proveedor', 'sucursales', 'ingresos'])
+        $producto = Producto::with(['categoria', 'subcategoria', 'proveedor', 'sucursales',  'movimientos'])
                             ->findOrFail($id);
         
         $stockPorSucursales = $producto->getStockPorSucursales();
@@ -183,26 +183,32 @@ class ProductoController extends Controller
     public function search(Request $request)
     {
         $query = $request->input('query');
-        $sucursalId = session('sucursal_id', 3);
+        $sucursalId = session('sucursal_activa', 0);
+        $keywords = explode(' ', $query);
+            $productos = Producto::whereHas('sucursales', function ($q) use ($sucursalId) {
+                $q->where('sucursal_id', $sucursalId)->where('stock', '>', 0);
+            })
+            ->where(function($q) use ($keywords, $query) {
+                // Si el código coincide exactamente, lo muestra
+                $q->where('codigo', 'like', "%$query%");
+                // O bien, todas las palabras deben estar en la descripción
+                $q->orWhere(function($subQ) use ($keywords) {
+                    foreach ($keywords as $word) {
+                        $subQ->where('descripcion', 'like', "%$word%");
+                    }
+                });
+            });
 
-        $productos = Producto::whereHas('sucursales', function ($q) use ($sucursalId) {
-                                $q->where('sucursal_id', $sucursalId);
-                            })
-                            ->where(function($q) use ($query) {
-                                $q->where('descripcion', 'like', "%$query%")
-                                  ->orWhere('codigo', 'like', "%$query%");
-                            })
-                            ->with(['sucursales' => function($q) use ($sucursalId) {
-                                $q->where('sucursal_id', $sucursalId);
-                            }])
-                            ->get();
+            $productos = $productos->with(['sucursales' => function($q) use ($sucursalId) {
+                $q->where('sucursal_id', $sucursalId);
+            }])->get();
         return response()->json($productos);
     }
 
     public function searchcod(Request $request)
     {
         $query = $request->input('query');
-        $sucursalId = session('sucursal_id', 3);
+        $sucursalId = session('sucursal_activa', 0);
 
         $productos = Producto::whereHas('sucursales', function ($q) use ($sucursalId) {
                                 $q->where('sucursal_id', $sucursalId);

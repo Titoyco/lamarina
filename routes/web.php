@@ -31,6 +31,9 @@ Route::middleware(['auth', 'check.route.permission'])->group(function () {
     Route::get('/usuarios/create', [UserController::class, 'create'])->name('usuarios.create'); // Formulario para agregar usuario
     Route::post('/usuarios', [UserController::class, 'store'])->name('usuarios.store'); // Guardar usuario
 
+    // imprimir etiqueta
+    Route::post('/imprimir-etiqueta', [App\Http\Controllers\TicketController::class, 'imprimirEtiqueta'])->name('ticket.imprimir');
+
 
     // Cambio de clave
     Route::get('/usuarios/{user}/edit-password', [UserController::class, 'editPassword'])->name('usuarios.edit-password'); // Formulario para cambiar clave
@@ -109,9 +112,7 @@ Route::middleware(['auth', 'check.route.permission'])->group(function () {
             ->parameters(['subcategorias' => 'subcategoria']);
 
         
-        // CRUD principales
-        Route::resource('/', ProductoController::class)
-            ->parameters(['' => 'producto']);
+
 
         // Utilidades
         Route::get('/barcode/{id}', [ProductoController::class, 'generateBarcode'])->name('barcode');
@@ -124,6 +125,10 @@ Route::middleware(['auth', 'check.route.permission'])->group(function () {
         Route::put('/{id}/stock/modificar', [StockController::class, 'modificarStock'])->name('stock.modificar');
         Route::post('/{id}/stock/transferir', [StockController::class, 'transferirStock'])->name('stock.transferir');
         Route::get('/stock/bajo/lista', [StockController::class, 'productosStockBajo'])->name('stock.bajo');
+
+                // CRUD principales
+        Route::resource('/', ProductoController::class)
+            ->parameters(['' => 'producto']);
 
 
     });

@@ -155,12 +155,21 @@ $botones = [
                     data.forEach(producto => {
                         const productRow = document.createElement('tr');
                         productRow.classList.add('border', 'border-gray-300', 'md:border-none', 'block', 'md:table-row');
+                        const stock = producto.sucursales.length > 0 ? producto.sucursales[0].pivot.stock : 0;
+                        const precio_venta = producto.sucursales.length > 0 ? producto.sucursales[0].pivot.precio_venta : 0;
                         productRow.innerHTML = `
-                            <td class="p-2 md:border md:border-gray-300 text-left block md:table-cell">${producto.descripcion}</td>
-                            <td class="p-2 md:border md:border-gray-300 text-left block md:table-cell">${producto.stock}</td>
-                            <td class="p-2 md:border md:border-gray-300 text-left block md:table-cell">${producto.precio_venta}</td>
-                            <td class="p-2 md:border md:border-gray-300 text-left block md:table-cell">
-                                <button type="button" class="bg-blue-500 text-white px-4 py-2 rounded-md ml-2 focus:outline-none" onclick="agregarProducto(${producto.id}, '${producto.descripcion}', ${producto.precio_venta}, ${producto.stock})">Agregar</button>
+                            <td class="...">${producto.descripcion}</td>
+                            <td class="...">${stock}</td>
+                            <td class="...">${precio_venta}</td>
+                            <td class="...">
+                                <button type="button" class="bg-blue-500 text-white px-4 py-2 rounded-md ml-2 focus:outline-none"
+                                    onclick="agregarProducto(
+                                        ${producto.id},
+                                        '${producto.descripcion.replace(/'/g, "\\'")}',
+                                        ${precio_venta},
+                                        ${stock}
+                                    )"
+                                >Agregar</button>
                             </td>
                         `;
                         listaProductos.appendChild(productRow);
@@ -180,7 +189,10 @@ $botones = [
                             if (data.length > 0) {
                                 // Producto encontrado: agregarlo a la lista
                                 const producto = data[0];
-                                agregarProducto(producto.id, producto.descripcion, producto.precio_venta, producto.stock);
+                                const sucursal = producto.sucursales[0];
+                                const stock = sucursal ? sucursal.pivot.stock : 0;
+                                const precio_venta = sucursal ? sucursal.pivot.precio_venta : 0;
+                                agregarProducto(producto.id, producto.descripcion, precio_venta, stock);
                                 this.value = ''; // Limpiar el campo de entrada
                                 this.focus(); // Mantener el foco en el campo de código de barras
                             } else {
@@ -230,34 +242,69 @@ $botones = [
 
         function agregarProducto(id, descripcion, precio, stock) {
             const productosDiv = document.querySelector('#lista-productos tbody');
-            const productRow = document.createElement('tr');
-            productRow.classList.add('border', 'border-gray-300', 'md:border-none', 'block', 'md:table-row');
-            productRow.innerHTML = `
-                <td class="p-2 md:border md:border-gray-300 text-left block md:table-cell">
-                    <input type="hidden" name="productos_id[]" value="${id}">
-                    <input type="hidden" name="cantidades[]" class="cantidad-hidden" value="1">
-                    <input type="text" class="product-description mt-1 block w-full py-2 px-3 border border-gray-300 bg-gray-100 rounded-md shadow-sm focus:outline-none sm:text-sm" value="${descripcion}" readonly>
-                </td>
-                <td class="p-2 md:border md:border-gray-300 text-left block md:table-cell">
-                    <input type="number" min="1" max="${stock}" class="product-quantity mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none sm:text-sm" value="1" onchange="actualizarSubtotal(this, ${precio})">
-                </td>
-                <td class="p-2 md:border md:border-gray-300 text-left block md:table-cell">
-                    <input type="text" class="product-precio mt-1 block w-full py-2 px-3 border border-gray-300 bg-gray-100 rounded-md shadow-sm focus:outline-none sm:text-sm" value="${precio.toFixed(2)}" readonly>
-                </td>
-                <td class="p-2 md:border md:border-gray-300 text-left block md:table-cell">
-                    <input type="text" class="product-subtotal mt-1 block w-full py-2 px-3 border border-gray-300 bg-gray-100 rounded-md shadow-sm focus:outline-none sm:text-sm" value="${precio.toFixed(2)}" readonly>
-                </td>
-                <td class="p-2 md:border md:border-gray-300 text-left block md:table-cell">
-                    <button type="button" class="remove-product ml-2 mt-1 py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-red-500 text-white" onclick="removerProducto(this)">Eliminar</button>
-                </td>
-            `;
-            productosDiv.appendChild(productRow);
-            actualizarTotal();
-            ocultarModal('modalAgregarProducto');
+            // Buscar si ya existe una fila con el mismo producto
+            let existente = null;
+            productosDiv.querySelectorAll('tr').forEach(row => {
+                const inputId = row.querySelector('input[name="productos_id[]"]');
+                if (inputId && parseInt(inputId.value) === id) {
+                    existente = row;
+                }
+            });
+
+            if (existente) {
+                // Si existe, sumar cantidad pero no exceder el stock
+                const cantidadInput = existente.querySelector('.product-quantity');
+                let cantidadActual = parseInt(cantidadInput.value);
+                let nuevaCantidad = cantidadActual + 1;
+                if (nuevaCantidad > stock) {
+                    nuevaCantidad = stock;
+                    alert("No se puede agregar más unidades que el stock disponible.");
+                }
+                cantidadInput.value = nuevaCantidad;
+                existente.querySelector('.cantidad-hidden').value = nuevaCantidad;
+                existente.querySelector('.product-subtotal').value = (nuevaCantidad * precio).toFixed(2);
+                actualizarTotal();
+                ocultarModal('modalAgregarProducto');
+            } else {
+                // Si no existe, agregar como nuevo
+                const productRow = document.createElement('tr');
+                productRow.classList.add('border', 'border-gray-300', 'md:border-none', 'block', 'md:table-row');
+                productRow.innerHTML = `
+                    <td class="p-2 md:border md:border-gray-300 text-left block md:table-cell">
+                        <input type="hidden" name="productos_id[]" value="${id}">
+                        <input type="hidden" name="cantidades[]" class="cantidad-hidden" value="1">
+                        <input type="text" class="product-description mt-1 block w-full py-2 px-3 border border-gray-300 bg-gray-100 rounded-md shadow-sm focus:outline-none sm:text-sm" value="${descripcion}" readonly>
+                    </td>
+                    <td class="p-2 md:border md:border-gray-300 text-left block md:table-cell">
+                        <input type="number" min="1" max="${stock}" class="product-quantity mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none sm:text-sm" value="1" onchange="actualizarSubtotal(this, ${precio}, ${stock})">
+                    </td>
+                    <td class="p-2 md:border md:border-gray-300 text-left block md:table-cell">
+                        <input type="text" class="product-precio mt-1 block w-full py-2 px-3 border border-gray-300 bg-gray-100 rounded-md shadow-sm focus:outline-none sm:text-sm" value="${precio.toFixed(2)}" readonly>
+                    </td>
+                    <td class="p-2 md:border md:border-gray-300 text-left block md:table-cell">
+                        <input type="text" class="product-subtotal mt-1 block w-full py-2 px-3 border border-gray-300 bg-gray-100 rounded-md shadow-sm focus:outline-none sm:text-sm" value="${precio.toFixed(2)}" readonly>
+                    </td>
+                    <td class="p-2 md:border md:border-gray-300 text-left block md:table-cell">
+                        <button type="button" class="remove-product ml-2 mt-1 py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-red-500 text-white" onclick="removerProducto(this)">Eliminar</button>
+                    </td>
+                `;
+                productosDiv.appendChild(productRow);
+                actualizarTotal();
+                ocultarModal('modalAgregarProducto');
+            }
         }
 
-        function actualizarSubtotal(input, precio) {
-            const cantidad = input.value;
+        // ActualizarSubtotal debe respetar el máximo de stock
+        function actualizarSubtotal(input, precio, stock) {
+            let cantidad = parseInt(input.value);
+            if (cantidad > stock) {
+                cantidad = stock;
+                input.value = stock;
+                alert("No se puede vender más unidades que el stock disponible.");
+            } else if (cantidad < 1) {
+                cantidad = 1;
+                input.value = 1;
+            }
             const subtotalInput = input.closest('tr').querySelector('.product-subtotal');
             const hiddenCantidadInput = input.closest('tr').querySelector('.cantidad-hidden');
             const subtotal = cantidad * precio;

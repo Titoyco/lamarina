@@ -87,4 +87,7 @@ class Producto extends Model
     {
         return $this->sucursales()->sum('productos_stock.stock');
     }
+
+
+    
 }
