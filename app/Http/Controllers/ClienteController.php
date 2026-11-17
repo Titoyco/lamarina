@@ -1,275 +1,522 @@
 <?php
-// app/Http/Controllers/ClientController.php
 
 namespace App\Http\Controllers;
+
 use App\Models\Cliente;
-use App\Models\Provincia;
-use App\Models\Localidad;
-use App\Models\Terminal;
 use App\Models\Sucursal;
-use App\Models\Tipo_Haber;
-use App\Models\Credito;
-use App\Models\Cuota;
-use App\Models\Presentacion;
-use App\Models\Tipo_Credito;
-use App\Models\Tipo_Cuota;
-use App\Models\Tipo_Interes;
+use App\Models\Localidad;
+use App\Models\Provincia;
+use App\Models\EstadoBanco;
 use Illuminate\Http\Request;
-use Barryvdh\DomPDF\Facade\Pdf as PDF;
-use GuzzleHttp\Client;
 
 class ClienteController extends Controller
 {
-
-// Mostrar formulario para consulta de saldo
-    public function consultaDeuda()
-    {
-        return view('clientes.consulta-deuda');
-    }
-
-    // Consultar saldo del cliente
-    public function deuda($dni)
-    {
-        // Buscar cliente por DNI
-        $cliente = Cliente::where('dni', $dni)->first();
-        $deudaTotal = Cuota::whereHas('credito', function ($query) use ($cliente) {
-                $query->where('id_cliente', $cliente->id)
-                    ->whereNull('fecha_cancelacion');
-                    })->sum('a_pagar');
-
-        // Si no se encuentra el cliente
-        if (!$cliente) {
-            return response()->json(['error' => 'Cliente no encontrado'], 404);
-        }
-
-        // Retornar datos del cliente
-        return response()->json([
-            'nombre' => $cliente->nombre,
-            'deudaTotal' => $deudaTotal, // Asume que hay una relación 'credito' en el modelo Cliente
-
-            
-        ]);
-    }
-
-    public function search(Request $request)
-    {
-        $query = $request->input('query');
-        $productos = Cliente::where('dni', 'like', "%$query%")
-                            ->orWhere('nombre', 'like', "%$query%")
-                            ->get();
-        return response()->json($productos);
-    }
-    public function searchdni(Request $request)
-    {
-        $query = $request->input('dni');
-        $productos = Cliente::where('dni', 'like', "$query")
-                            ->get();
-        return response()->json($productos);
-    }
-
-    public function nuevoCredito(Cliente $cliente)
-    {
-        $interes = 0.04; // 4% de interés mensual
-        $terminales = Sucursal::orderBy('codigo')->get(); // 
-        return view('creditos.nuevoCredito', compact('cliente', 'interes', 'terminales'));
-    }
-
-
-    public function exportarFicha(Cliente $cliente)
-    {
-        
-        //$cliente = Cliente::findOrFail($id); // Asegúrate de que el cliente existe
-        $pdf = PDF::loadView('clientes.exportarFicha', compact('cliente'));
-        //return view('clientes.exportarFicha', compact('cliente'));
-        return $pdf->stream();
-        //return $pdf->download('ficha_cliente_' . $cliente->id . '.pdf');
-    }
-
-
-    public function imprimirMovimientos(Cliente $cliente)
-    {
-        $imprimir = true;
-        $creditos_pendientes = $cliente->creditos()->whereNull('fecha_cancelacion')->orderBy('fecha_credito', 'desc')->get();
-        $creditos_pagados = $cliente->creditos()->whereNotNull('fecha_cancelacion')->orderBy('fecha_credito', 'desc')->get();
-        return View('clientes.creditos', compact('cliente', 'creditos_pendientes', 'creditos_pagados', 'imprimir'));
-    }
-
-
-    public function movimientos(Cliente $cliente)
-    {
-
-
-    }
-
-    public function creditos(Cliente $cliente)
-    {
-        //$cliente = Cliente::findOrFail($id);
-
-        // Obtener los créditos del cliente y ordenarlos de forma descendente
-        //$creditos = $cliente->creditos()->orderBy('credito', 'desc')->get();
-
-        $creditos_pendientes = $cliente->creditos()->whereNull('fecha_cancelacion')->orderBy('fecha_credito', 'desc')->get();
-        $creditos_pagados = $cliente->creditos()->whereNotNull('fecha_cancelacion')->orderBy('fecha_credito', 'desc')->get();
-        $deudaTotal = Cuota::whereHas('credito', function ($query) use ($cliente) {
-                        $query->where('id_cliente', $cliente->id)
-                            ->whereNull('fecha_cancelacion');
-                            })->sum('a_pagar');
-
-        //$creditos = $cliente->creditos; // Asumiendo que tienes una relación definida
-
-        return view('clientes.creditos', compact('cliente', 'creditos_pendientes', 'creditos_pagados', 'deudaTotal'));
-    }
-
-    public function imprimirFicha(Cliente $cliente)
-    {
-        return View('clientes.exportarFicha', compact('cliente'));
-    }
+    /**
+     * Default de `clientes.tipo_haber` (esquema: BIGINT NOT NULL DEFAULT 1).
+     * Si el operador deja el campo en blanco se aplica este valor en lugar de fallar.
+     */
+    private const TIPO_HABER_POR_DEFECTO = 1;
 
     public function index(Request $request)
     {
-        // Inicializa la variable $clientes como una colección vacía
-        $clientes = collect();
-        $sucursal_id = $request->input('sucursal_id'); // recibe el ID de la sucursal
-        // Verifica si hay una consulta de búsqueda
+        $query = Cliente::with(['localidad.provincia', 'sucursal', 'autorizados', 'titulares']);
 
-            $query = $request->input('query');
+        // 1. Buscador por texto
+        if ($request->filled('search')) {
+            $palabras = array_filter(explode(' ', trim($request->search)));
 
-            $clientesQuery = Cliente::with('sucursal')
-                ->where(function ($q) use ($query) {
-                    $q->where('nombre', 'LIKE', "%{$query}%")
-                    ->orWhere('dni', 'LIKE', "%{$query}%");
+            $query->where(function ($q) use ($palabras) {
+                $q->where(function ($qTitular) use ($palabras) {
+                    foreach ($palabras as $palabra) {
+                        $qTitular->where(function ($subQ) use ($palabra) {
+                            $subQ->where('nombre', 'LIKE', "%{$palabra}%")
+                                ->orWhere('dni', 'LIKE', "%{$palabra}%")
+                                ->orWhere('cuit', 'LIKE', "%{$palabra}%")
+                                ->orWhere('nro_cuenta', 'LIKE', "%{$palabra}%")
+                                ->orWhere('cbu', 'LIKE', "%{$palabra}%");
+                        });
+                    }
+                })
+                ->orWhereHas('autorizados', function ($qAutorizado) use ($palabras) {
+                    foreach ($palabras as $palabra) {
+                        $qAutorizado->where(function ($subQ) use ($palabra) {
+                            $subQ->where('nombre', 'LIKE', "%{$palabra}%")
+                                ->orWhere('dni', 'LIKE', "%{$palabra}%")
+                                ->orWhere('cuit', 'LIKE', "%{$palabra}%");
+                        });
+                    }
+                });
+            });
+        }
+
+        // 2. Filtros secundarios
+        if ($request->filled('id_sucursal')) {
+            $query->where('id_sucursal', $request->id_sucursal);
+        }
+
+        if ($request->filled('id_localidad')) {
+            $query->where('id_localidad', $request->id_localidad);
+        }
+
+        if ($request->filled('id_provincia')) {
+            $query->whereHas('localidad', function ($q) use ($request) {
+                $q->where('id_provincia', $request->id_provincia);
+            });
+        }
+
+        if ($request->filled('suspendido') && $request->suspendido !== 'todos') {
+            $query->where('suspendido', $request->suspendido);
+        }
+
+        // Filtro por la nueva columna estado_banco
+        if ($request->filled('estado_banco')) {
+            $query->where('estado_banco', $request->estado_banco);
+        }
+        
+        // Saldo > 0
+        if ($request->boolean('has_saldo')) {
+            $query->where('saldo', '>', 0);
+        }
+
+        // Ordenamiento interactivo (Click-to-Sort conforme a .agents/rules/table_sorting.md)
+        $sortableColumns = [
+            'dni'        => 'clientes.dni',
+            'nro_cuenta' => 'clientes.nro_cuenta',
+            'nombre'     => 'clientes.nombre',
+            'sucursal'   => 'sucursal',
+            'localidad'  => 'localidad',
+            'saldo'      => 'clientes.saldo',
+        ];
+
+        $sort = $request->get('sort', 'nombre');
+        $direction = strtolower($request->get('direction', 'asc'));
+
+        if (!array_key_exists($sort, $sortableColumns)) {
+            $sort = 'nombre';
+        }
+        if (!in_array($direction, ['asc', 'desc'], true)) {
+            $direction = 'asc';
+        }
+
+        if ($sort === 'sucursal') {
+            $query->leftJoin('sucursales', 'clientes.id_sucursal', '=', 'sucursales.id')
+                ->select('clientes.*')
+                ->orderBy('sucursales.nombre', $direction);
+        } elseif ($sort === 'localidad') {
+            $query->leftJoin('localidades', 'clientes.id_localidad', '=', 'localidades.id')
+                ->select('clientes.*')
+                ->orderBy('localidades.nombre', $direction);
+        } else {
+            $query->orderBy($sortableColumns[$sort], $direction);
+        }
+
+        if ($sort !== 'id') {
+            $query->orderBy('clientes.id', 'desc');
+        }
+
+        // Exportación a Excel / CSV con todos los filtros aplicados
+        if ($request->get('export') === 'excel' || $request->get('export') === 'csv') {
+            $exportQuery = clone $query;
+            $filename = 'clientes_' . date('Ymd_His') . '.csv';
+
+            return response()->streamDownload(function () use ($exportQuery) {
+                $handle = fopen('php://output', 'w');
+                fputs($handle, "\xEF\xBB\xBF"); // BOM UTF-8
+
+                fputcsv($handle, [
+                    'DNI',
+                    'CUIT',
+                    'Nro Cuenta',
+                    'Cliente',
+                    'Sucursal',
+                    'Localidad',
+                    'Provincia',
+                    'Direccion',
+                    'Telefono',
+                    'Email',
+                    'Saldo Actual',
+                    'Limite Credito',
+                    'Estado',
+                ], ';');
+
+                $exportQuery->chunk(1000, function ($chunk) use ($handle) {
+                    foreach ($chunk as $c) {
+                        fputcsv($handle, [
+                            $c->dni,
+                            $c->cuit ?? '-',
+                            $c->nro_cuenta ?? '-',
+                            $c->nombre,
+                            $c->sucursal?->nombre ?? '-',
+                            $c->localidad?->nombre ?? '-',
+                            $c->localidad?->provincia?->nombre ?? '-',
+                            $c->direccion ?? '-',
+                            $c->telefono ?? '-',
+                            $c->email ?? '-',
+                            number_format((float)$c->saldo, 2, ',', ''),
+                            number_format((float)($c->limite_credito ?? 0), 2, ',', ''),
+                            $c->suspendido ? 'Suspendido' : 'Activo',
+                        ], ';');
+                    }
                 });
 
-                // Si seleccionaron una sucursal, filtra
-                if (!empty($sucursal_id)) {
-                    $clientesQuery->where('id_sucursal', $sucursal_id);
-                }
+                fclose($handle);
+            }, $filename, [
+                'Content-Type' => 'text/csv; charset=UTF-8',
+                'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            ]);
+        }
 
-    
-            // Realiza la búsqueda en tu modelo de Cliente
-            $clientes = $clientesQuery
-                ->orderBy('nombre', 'asc')
-                ->paginate(20)  // Esto devuelve una colección dividida en paginas de 20
-                ->appends(['query' => $query]); // Mantiene el parámetro de búsqueda en la paginación
-        
-    
-        return view('clientes.index', compact('clientes'));
-        //return $clientes;
+        $clientes = $query->paginate(15)->withQueryString();
 
+        $sucursales   = Sucursal::orderBy('nombre')->get();
+        $localidades  = Localidad::orderBy('nombre')->get();
+        $provincias   = Provincia::orderBy('nombre')->get();
+        $estadosBanco = EstadoBanco::orderBy('codigo')->get();
+
+        return view('clientes.index', compact('clientes', 'sucursales', 'localidades', 'provincias', 'estadosBanco', 'sort', 'direction'));
     }
-
-    public function showFormBuscar()
-    {
-        return view('clientes.formBuscar');
-    }
-
 
     public function create()
     {
-        //$localidades = Localidad::orderBy('nombre')->get();;
-        $provincias = Provincia::orderBy('nombre')->get(); // 
-        $sucursales = Sucursal::orderBy('nombre')->get(); // 
-        $tipos_haber = Tipo_Haber::orderBy('id')->get(); // 
-        //return $sucursales;
-
-        return view('clientes.create', compact('sucursales', 'tipos_haber', 'provincias'));
-
+        $sucursales = Sucursal::orderBy('nombre')->get();
+        $localidades = Localidad::with('provincia')->orderBy('nombre')->get();
+        $provincias = Provincia::with('localidades')->orderBy('nombre')->get();
+        return view('clientes.create', compact('sucursales', 'localidades', 'provincias'));
     }
 
     public function store(Request $request)
     {
-        /* $request->validate([
-            'dni' => ' unique:clientes,dni|required|integer',
-            'nombre' => 'required|string|max:255',
-            'medio_pago_preferido' => 'integer|nullable',
-            'cbu' => 'nullable|string|max:25',
-            'sucursal' => 'required|exists:sucursales,id',
-            'tipo_haber' => 'required|exists:tipo_haberes,id',
-            'saldo' => 'nullable|numeric',
-            'limite' => 'nullable|numeric',
-            'max_cuotas' => 'nullable|integer',
-            'suspendido' => 'boolean',
-            'obs' => 'nullable|string',
-            'direccion' => 'required|string|max:255',
+        $validated = $request->validate([
+            'dni' => 'required|unique:clientes,dni|integer',
+            'cuit' => 'nullable|string|max:20',
+            'nro_cuenta' => 'nullable|string|max:50',
+            'nombre' => 'required|string|max:191',
+            'id_sucursal' => 'required|exists:sucursales,id',
+            'medio_pago_preferido' => 'required|integer|in:0,1',
+            
+            'cbu' => [
+                'required_if:medio_pago_preferido,1',
+                'nullable',
+                'string',
+                'size:22',
+                function ($attribute, $value, $fail) {
+                    if (!empty($value) && !$this->validarCBU($value)) {
+                        $fail('El número de CBU ingresado no es válido (dígito verificador incorrecto).');
+                    }
+                },
+            ],
+            
+            'tipo_haber' => 'nullable|integer|min:1',
+            'limite' => 'required|numeric|min:0',
+            'max_cuotas' => 'required|integer|min:1|max:24',
+            'direccion' => 'required|string|max:191',
             'id_localidad' => 'required|exists:localidades,id',
-            'email' => 'required|email|max:255',
-            'tel1' => 'required|string|max:20',
-            'tel2' => 'nullable|string|max:20',
-            'familiar' => 'nullable|string|max:255',
-            'tipo_familiar' => 'nullable|string|max:255',
-            'direccion_familiar' => 'nullable|string|max:255',
+            'email' => 'nullable|email|max:191',
+            'tel1' => 'required|string|max:50',
+            'tel2' => 'nullable|string|max:50',
+            
+            // Familiar / Referencia
+            'familiar' => 'nullable|string|max:191',
+            'tipo_familiar' => 'nullable|string|max:50',
+            'direccion_familiar' => 'nullable|string|max:191',
             'id_localidad_familiar' => 'nullable|exists:localidades,id',
-            'email_familiar' => 'nullable|email|max:255',
-            'tel_familiar' => 'nullable|string|max:20',
-            'trabajo' => 'nullable|string|max:255',
-            'direccion_trabajo' => 'nullable|string|max:255',
+            'email_familiar' => 'nullable|email|max:191',
+            'tel_familiar' => 'nullable|string|max:50',
+            
+            // Laborales
+            'trabajo' => 'nullable|string|max:191',
+            'direccion_trabajo' => 'nullable|string|max:191',
             'id_localidad_trabajo' => 'nullable|exists:localidades,id',
-            'tel_trabajo' => 'nullable|string|max:20',
-        ]); */
-        
-        try {
-            $cliente = Cliente::create($request->all());
-            $cliente->suspendido = $request->has('suspendido') ? 1 : 0;
-            $cliente->save();
-            return redirect()->route('clientes.show', ['cliente' => $cliente->id])->with('success', 'Cliente creado con éxito.');
-        } catch (\Illuminate\Database\QueryException $e) {
-            if ($e->getCode() == 23000) { // Código de error para violación de restricción de unicidad
-                return redirect()->back()->withErrors(['dni' => 'El DNI ya está registrado.']);
-            }
-            // Manejar otros tipos de excepciones si es necesario
-        }
-    }
+            'tel_trabajo' => 'nullable|string|max:50',
+            'obs' => 'nullable|string',
+        ], [
+            'cbu.required_if' => 'El CBU es obligatorio cuando el medio de pago preferido es Débito en CBU.',
+            'tipo_haber.integer' => 'El Tipo de Haber debe ser un número entero (ID de la categoría).',
+            'tipo_haber.min' => 'El Tipo de Haber debe ser mayor o igual a 1.',
+        ]);
 
-    public function edit(Cliente $cliente) // AL TENER EL MODELO EN EL PARAMETRO, AUTOMATICAMENTE DEVIELVE EL OBJETO QUE COINCIDE CON EL ID
-    { 
-        // Cargar las relaciones necesarias
-        $cliente->load('localidad.provincia', 'localidadFamiliar.provincia', 'localidadTrabajo.provincia'); // Carga la localidad y la provincia asociada
+        $data = $this->normalizarDatosCliente($validated);
 
-        $provincias = Provincia::orderBy('nombre')->get(); // 
-        $sucursales = Sucursal::orderBy('nombre')->get(); // 
-        $tipos_haber = Tipo_Haber::orderBy('id')->get(); // 
+        // Estado de alta: sin suspensión y sin estado bancario.
+        $data['suspendido'] = $request->has('suspendido') ? 1 : 0;
+        $data['estado_banco'] = null;
+        $data['fecha_estado_banco'] = null;
 
-        
-        return view('clientes.edit', compact('cliente','sucursales', 'tipos_haber', 'provincias'));
-    }
+        Cliente::create($data);
 
-
-    public function show(Cliente $cliente) // AL TENER EL MODELO EN EL PARAMETRO, AUTOMATICAMENTE DEVIELVE EL OBJETO QUE COINCIDE CON EL ID
-    {
-
-        // Cargar las relaciones necesarias
-        $cliente->load('localidad.provincia', 'localidadFamiliar.provincia', 'localidadTrabajo.provincia'); // Carga la localidad y la provincia asociada
-
-        $provincias = Provincia::orderBy('nombre')->get(); // Obtener todas las provincias
-        $sucursales = Sucursal::orderBy('nombre')->get(); // Obtener todas las sucursales
-        $tipos_haber = Tipo_Haber::orderBy('id')->get(); // Obtener todos los tipos de haber
-
-        return view('clientes.show', compact('cliente', 'sucursales', 'tipos_haber', 'provincias'));
-
-
+        return redirect()->route('clientes.index')
+                        ->with('success', 'Cliente creado correctamente.');
     }
 
     public function update(Request $request, Cliente $cliente)
     {
-       /* $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:clients,email,' . $cliente->id,
-            'phone' => 'nullable|string|max:15',
-        ]); */
+        // Validamos la información (permitiendo que el DNI sea el mismo del cliente actual)
+        $validated = $request->validate([
+            'dni' => 'required|integer|unique:clientes,dni,' . $cliente->id,
+            'cuit' => 'nullable|string|max:20',
+            'nro_cuenta' => 'nullable|string|max:50',
+            'nombre' => 'required|string|max:191',
+            'id_sucursal' => 'required|exists:sucursales,id',
+            'medio_pago_preferido' => 'required|integer|in:0,1',
+            
+            // --- CBU REQUERIDO SI MEDIO DE PAGO ES 1 (DÉBITO) ---
+            'cbu' => [
+                'required_if:medio_pago_preferido,1',
+                'nullable',
+                'string',
+                'size:22',
+                function ($attribute, $value, $fail) {
+                    if (!empty($value) && !$this->validarCBU($value)) {
+                        $fail('El número de CBU ingresado no es válido (dígito verificador incorrecto).');
+                    }
+                },
+            ],
+            
+            'tipo_haber' => 'nullable|integer|min:1',
+            'limite' => 'required|numeric|min:0',
+            'max_cuotas' => 'required|integer|min:1|max:24',
+            'direccion' => 'required|string|max:191',
+            'id_localidad' => 'required|exists:localidades,id',
+            'email' => 'nullable|email|max:191',
+            'tel1' => 'required|string|max:50',
+            'tel2' => 'nullable|string|max:50',
+            
+            // Datos del Familiar / Referencia
+            'familiar' => 'nullable|string|max:191',
+            'tipo_familiar' => 'nullable|string|max:50',
+            'direccion_familiar' => 'nullable|string|max:191',
+            'id_localidad_familiar' => 'nullable|exists:localidades,id',
+            'email_familiar' => 'nullable|email|max:191',
+            'tel_familiar' => 'nullable|string|max:50',
+            
+            // Datos Laborales
+            'trabajo' => 'nullable|string|max:191',
+            'direccion_trabajo' => 'nullable|string|max:191',
+            'id_localidad_trabajo' => 'nullable|exists:localidades,id',
+            'tel_trabajo' => 'nullable|string|max:50',
+            'obs' => 'nullable|string',
+        ], [
+            'cbu.required_if' => 'El CBU es obligatorio cuando el medio de pago preferido es Débito en CBU.',
+            'tipo_haber.integer' => 'El Tipo de Haber debe ser un número entero (ID de la categoría).',
+            'tipo_haber.min' => 'El Tipo de Haber debe ser mayor o igual a 1.',
+        ]);
 
-        $cliente->update($request->all());
-        $cliente->suspendido = $request->has('suspendido') ? 1 : 0;
-        $cliente->save();
+        $data = $this->normalizarDatosCliente($validated);
 
-        return redirect()->route('clientes.show', ['cliente' => $cliente->id])->with('success', 'Cliente actualizado con éxito.');
+        // Manejo del checkbox de suspensión (0 o 1 estricto)
+        $data['suspendido'] = $request->input('suspendido') == 1 ? 1 : 0;
+
+        // Actualizamos el registro del legajo
+        $cliente->update($data);
+
+        if ($request->boolean('embed')) {
+            return redirect()->route('clientes.show', ['cliente' => $cliente->id, 'embed' => 1])
+                            ->with('success', 'Legajo de cliente actualizado correctamente.');
+        }
+
+        return redirect()->route('clientes.index')
+                        ->with('success', 'Legajo de cliente actualizado correctamente.');
     }
 
-    public function destroy(Cliente $client)
+
+    /**
+     * Normaliza el payload validado del legajo antes de persistirlo.
+     *
+     * 1) `tipo_haber` es NOT NULL en BD (default 1): si el operador deja el campo en blanco,
+     *    `nullable` deja pasar el vacío y el INSERT mandaría NULL -> viola la restricción.
+     *    Se aplica el default del esquema en lugar de romper con un error 500.
+     * 2) Los campos opcionales llegan como '' (input vacío) y se guardaban como cadena vacía
+     *    en lugar de NULL, ensuciando los reportes y los `LIKE` de búsqueda.
+     * 3) Sólo se persisten campos validados: se evita el mass-assignment de columnas
+     *    del legajo como `saldo` o `estado_banco`, que no forman parte del formulario.
+     */
+    private function normalizarDatosCliente(array $validated): array
     {
-        $client->delete();
-        return redirect()->route('clients.index')->with('success', 'Cliente eliminado con éxito.');
+        // Columnas NOT NULL del esquema `clientes` que deben llevar un valor siempre.
+        $data = [
+            'tipo_haber' => self::TIPO_HABER_POR_DEFECTO,
+            'limite' => 0,
+            'max_cuotas' => 3,
+            'suspendido' => 0,
+        ];
+
+        $data = array_merge($data, $validated);
+
+        // `tipo_haber` vacío -> default del esquema (BD: NOT NULL DEFAULT 1).
+        if (blank($data['tipo_haber'])) {
+            $data['tipo_haber'] = self::TIPO_HABER_POR_DEFECTO;
+        }
+
+        // Campos opcionales: '' -> NULL (nunca cadena vacía en BD).
+        $opcionales = [
+            'cuit', 'nro_cuenta', 'cbu', 'email', 'tel2', 'familiar', 'tipo_familiar', 'direccion_familiar',
+            'id_localidad_familiar', 'email_familiar', 'tel_familiar', 'trabajo',
+            'direccion_trabajo', 'id_localidad_trabajo', 'tel_trabajo', 'obs',
+        ];
+
+        foreach ($opcionales as $campo) {
+            if (array_key_exists($campo, $data) && blank($data[$campo])) {
+                $data[$campo] = null;
+            }
+        }
+
+        return $data;
     }
 
+    private function validarCBU($cbu)
+    {
+        // Verificar que sean 22 caracteres numéricos
+        if (!preg_match('/^[0-9]{22}$/', $cbu)) {
+            return false;
+        }
 
+        $bloque1 = substr($cbu, 0, 8);
+        $bloque2 = substr($cbu, 8, 14);
 
+        // Validar primer bloque (Banco, Sucursal y Dígito Verificador 1)
+        $ponderacion1 = [7, 1, 3, 9, 7, 1, 3];
+        $suma1 = 0;
+        for ($i = 0; $i < 7; $i++) {
+            $suma1 += (int)$bloque1[$i] * $ponderacion1[$i];
+        }
+        $digitoVerificador1 = (10 - ($suma1 % 10)) % 10;
+        if ($digitoVerificador1 !== (int)$bloque1[7]) {
+            return false;
+        }
+
+        // Validar segundo bloque (Cuenta y Dígito Verificador 2)
+        $ponderacion2 = [3, 9, 7, 1, 3, 9, 7, 1, 3, 9, 7, 1, 3];
+        $suma2 = 0;
+        for ($i = 0; $i < 13; $i++) {
+            $suma2 += (int)$bloque2[$i] * $ponderacion2[$i];
+        }
+        $digitoVerificador2 = (10 - ($suma2 % 10)) % 10;
+        if ($digitoVerificador2 !== (int)$bloque2[13]) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public function edit(Cliente $cliente)
+    {
+        $sucursales = Sucursal::orderBy('nombre')->get();
+        $localidades = Localidad::with('provincia')->orderBy('nombre')->get();
+        $provincias = Provincia::with('localidades')->orderBy('nombre')->get();
+
+        return view('clientes.edit', compact('cliente', 'sucursales', 'localidades', 'provincias'));
+    }
+
+    public function destroy(Cliente $cliente)
+    {
+        // 1. Verificar si tiene créditos activos/históricos o saldo pendiente
+        if ($cliente->tieneHistorial()) {
+            return redirect()->route('clientes.index')
+                ->with('error', 'No se puede eliminar el cliente porque posee historial financiero/créditos o saldo pendiente.');
+        }
+
+        // 2. Verificar si es titular con firmas autorizadas vinculadas
+        if ($cliente->autorizados()->exists()) {
+            return redirect()->route('clientes.index')
+                ->with('error', 'No se puede eliminar el cliente porque tiene adicionales autorizados vinculados. Desvincúlelos primero.');
+        }
+
+        $cliente->delete();
+
+        return redirect()->route('clientes.index')
+            ->with('success', 'El cliente fue eliminado del sistema correctamente.');
+    }
+
+    public function estadoCuenta(Cliente $cliente)
+    {
+        // Cargar créditos con sus cuotas y sucursales, y sus recibos de cobranza
+        $cliente->load([
+            'creditos.cuotas',
+            'creditos.sucursal',
+            'autorizados',
+            'recibos' => function ($q) {
+                $q->with(['sucursal', 'user'])->orderBy('fecha', 'desc')->orderBy('numero_recibo', 'desc');
+            }
+        ]);
+
+        // Filtrar solo los créditos activos / abiertos
+        $creditosAbiertos   = $cliente->creditos->whereNull('fecha_cancelacion');
+        $creditosCancelados = $cliente->creditos->whereNotNull('fecha_cancelacion');
+
+        // Extraer todas las cuotas asociadas únicamente a créditos activos
+        $cuotasActivas = $creditosAbiertos->flatMap->cuotas;
+
+        // Métricas exclusivas de Créditos Activos
+        $totalValorBase   = $cuotasActivas->sum('valor_base');    // Total Deuda Base (Original)
+        $totalIntereses   = $cuotasActivas->sum('intereses');     // Total Intereses
+        $totalEntregado   = $cuotasActivas->sum('entrego');       // Total Entregado (Cobrado)
+        $totalAPagar      = $cuotasActivas->sum('saldo_actual');    // Total a Pagar
+        $totalRestante    = $totalValorBase + $totalIntereses - $totalEntregado - $totalAPagar;  // Total Restante / Saldo Pendiente
+        $recibos          = $cliente->recibos;
+
+        return view('clientes.estado-cuenta', compact(
+            'cliente',
+            'creditosAbiertos',
+            'creditosCancelados',
+            'totalValorBase',
+            'totalIntereses',
+            'totalEntregado',
+            'totalAPagar',
+            'totalRestante',
+            'recibos'
+        ));
+    }
+
+    public function show(Cliente $cliente)
+    {
+        $cliente->load(['autorizados', 'novedades.user', 'sucursal']); // Cargar relaciones necesarias para la vista de detalle
+        return view('clientes.show', compact('cliente'));
+    }
+
+    public function storeNovedad(Request $request, Cliente $cliente)
+    {
+        $request->validate([
+            'mensaje' => 'required|string|max:1000',
+        ]);
+
+        $cliente->novedades()->create([
+            'user_id' => auth()->id(),
+            'usuario_nombre' => auth()->user()?->name ?? 'Operador',
+            'mensaje' => trim($request->mensaje),
+            'origen_accion' => 'manual',
+        ]);
+
+        if ($request->boolean('embed')) {
+            return redirect()->route('clientes.show', ['cliente' => $cliente->id, 'embed' => 1])
+                ->with('success', 'Novedad registrada en el legajo correctamente.');
+        }
+
+        return redirect()->route('clientes.show', $cliente->id)
+            ->with('success', 'Novedad registrada en el legajo correctamente.');
+    }
+
+    /**
+     * Endpoint API JSON para búsqueda rápida de clientes (DNI, nombre, cuenta).
+     */
+    public function buscar(Request $request)
+    {
+        $term = trim($request->get('q', ''));
+        if (strlen($term) < 2) {
+            return response()->json([]);
+        }
+
+        $clientes = Cliente::with('sucursal')
+            ->where(function ($q) use ($term) {
+                $q->where('dni', 'LIKE', "%{$term}%")
+                  ->orWhere('nombre', 'LIKE', "%{$term}%")
+                  ->orWhere('cuit', 'LIKE', "%{$term}%")
+                  ->orWhere('nro_cuenta', 'LIKE', "%{$term}%");
+            })
+            ->orderByRaw('CASE WHEN dni = ? OR nro_cuenta = ? THEN 0 WHEN dni LIKE ? THEN 1 ELSE 2 END', [$term, $term, "{$term}%"])
+            ->orderBy('nombre')
+            ->limit(15)
+            ->get(['id', 'id_sucursal', 'nombre', 'dni', 'nro_cuenta', 'cuit', 'saldo', 'suspendido']);
+
+        return response()->json($clientes);
+    }
 }

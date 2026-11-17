@@ -152,28 +152,45 @@ Requerimiento explícito: *"se tiene que poder dar de alta las facturas, guardar
 
 ---
 
-### Módulo 5: Facturación (Ventas) y Medios de Pago
+### Módulo 5: Facturación (Ventas), Descuentos y Medios de Pago
 
-Requerimiento explícito: *"...facturar, y las facturas se pueden pagar con credito personal (cuenta corriente)."*
+Requerimiento explícito: *"...facturar, y las facturas se pueden pagar con credito personal (cuenta corriente). Agrega en la factura de venta la posibilidad de hacer el descuento asi podemos cargar el dato de movimiento.descuento para poder visualizarlo..."*
 
 1. **Interfaz de Punto de Venta (POS Rápido):**
    - Operación optimizada para teclado y lector de código de barras: escaneo continuo de productos, sumatoria automática de cantidades y cálculo de subtotales.
-   - Selección ágil del cliente mediante DNI, CUIT, Nro. de Cuenta o búsqueda interactiva.
+   - Selección ágil del cliente mediante DNI, CUIT, Nro. de Cuenta o búsqueda interactiva con indicador de disponible crediticio.
+   - **Doble Nivel de Descuentos (Por Artículo y General de Factura):**
+     - **Descuento en Porcentaje por Artículo / Prenda (`venta_items.descuento_porcentaje` y `venta_items.descuento`):**
+       - Cada renglón de la factura dispone de un campo interactivo para aplicar un porcentaje de descuento (0% a 100%) para artículos en liquidación o promociones especiales.
+       - **Soporte Nativo de Promoción 2x1:** Botón rápido `[2x1]` en cada fila que aplica automáticamente el 100% de bonificación al artículo (dejando su subtotal en `$ 0,00` con rebaja completa de stock), y botón `[+2x1]` para duplicar al instante una prenda como unidad bonificada.
+       - Persistencia histórica fidedigna: recupera el 100% de los artículos con 100% de descuento y promociones 2x1 heredados de `MOVIMIENTO_DETALLE` de Access Ushuaia.
+       - Cálculo atómico de línea: `Subtotal_Item = (Cantidad * Precio_Unitario) - Descuento_Item`.
+     - **Descuento Comercial Global en Factura (`ventas.descuento`):**
+       - Campo editable de descuento monetario o porcentual en el panel de totales de la factura (equivalente funcional a `MOVIMIENTO.descuento` de Access).
+       - Recálculo dinámico en tiempo real del Total Neto a Cobrar: `Total = Subtotal - Descuento`.
+       - Visualización discriminada de ambos niveles de descuento en pantalla de mostrador, en el visor de registradora, en el ticket fiscal y en la factura A4.
+       - **Consistencia Matemática Absoluta:** La suma de los subtotales de los ítems (`SUM(venta_items.subtotal)`) coincide exactamente con el subtotal neto de la venta (`ventas.subtotal`), garantizando consultas contables y de auditoría sin discrepancias.
 2. **Medios de Pago Soportados:**
    - Efectivo.
    - Tarjetas de Débito / Tarjetas de Crédito bancarias.
    - Transferencia bancaria / billeteras virtuales (Mercado Pago).
-   - **Crédito Personal (Cuenta Corriente La Marina):** Financiación interna en cuotas fijas.
+   - **Crédito Personal (Cuenta Corriente La Marina):** Financiación interna en cuotas fijas calculadas sobre el total neto posterior al descuento.
    - **Pago Mixto:** Posibilidad de abonar una entrega en efectivo/tarjeta y el saldo remanente financiarlo en cuotas de crédito personal.
 3. **Condiciones para Habilitar Crédito Personal en la Venta:**
    - Cliente no suspendido (`suspendido == false`).
    - Verificación de disponible: `(Deuda actual + Monto a financiar) <= Limite_Efectivo`.
    - Cantidad de cuotas solicitadas menor o igual a `cliente.max_cuotas`.
    - Identificación del firmante: Titular o Autorizado con límite asignado.
-4. **Comprobantes Emitidos:**
-   - Emisión de Factura de Venta / Ticket fiscal.
+4. **Comprobantes Emitidos y Gestión de Historial:**
+   - Emisión de Factura de Venta / Ticket fiscal (Tipos: `FACTURA_A`, `FACTURA_B`, `TICKET`, `REMITO`).
    - En caso de pago con Crédito Personal, emisión automática del **Pagaré y Solicitud de Crédito** para firma física del cliente o autorizado.
-   - Descuento de stock en tiempo real con bloqueo de venta si no hay existencia disponible en la sucursal activa.
+   - Descuento de stock atómico en tiempo real en la sucursal activa con bloqueo de venta si no hay existencia disponible.
+   - **Historial Completo de Ventas (`/ventas`):**
+     - Acceso directo desde el menú de navegación superior y desde la tarjeta principal del Dashboard de inicio.
+     - Búsqueda y filtrado exhaustivo por cliente, rango de fechas, sucursal, tipo de comprobante y medio de pago.
+     - Modal de detalle de venta con ítems facturados, precios unitarios, subtotal, descuento aplicado y desglose de medios de cobro.
+     - Reimpresión oficial de comprobantes y pagarés.
+     - Exportación a Excel respetando estrictamente los filtros aplicados y el orden seleccionado en pantalla.
 
 ---
 
@@ -239,6 +256,71 @@ sequenceDiagram
 2. **Reversiones Seguras (Rollback):**
    - Anulación de cobro restituye el saldo exacto en la cuota y elimina el recibo.
    - Anulación de venta/crédito (solo permitida si no hubo amortizaciones) reintegra el stock a la sucursal y cancela el pagaré.
+
+---
+
+### Módulo 8: Tablero de Control y Métricas BI (Estilo PowerBI)
+
+Requerimiento explícito: *"...un panel de Metricas (estilo powerbi) donde vamos a tener ventas, donde pueda filtrar por fecha de ventas (desde y hasta) y me de una tabla (resumen) de la cantidad de prendas y el valor cobrado, y poder verlo ya sea por categoria, por fabricante, por subcategoria, por sucursal, por medio de pago, tipo de comprobante, etc. Por otro lado lo mismo con los creditos, valor base, total en cuotas, total cobrado, deudas, (filtrado por fecha o por sucursal)..."*
+
+1. **Arquitectura y Enrutamiento:**
+   - Controlador dedicado `MetricasController` en `app/Http/Controllers/MetricasController.php`.
+   - Vistas Blade en `resources/views/metricas/index.blade.php`.
+   - Accesible desde la barra superior de navegación y la tarjeta principal en el Dashboard (`/metricas`).
+
+2. **Filtros Temporales y Slicers Rápidos:**
+   - Selector libre de rango: `fecha_desde` y `fecha_hasta`.
+   - Presets inmediatos con recálculo automático: *Hoy*, *Últimos 7 días*, *Este Mes*, *Mes Anterior*, *Año Actual* e *Histórico Total*.
+   - Filtro complementario multi-sucursal (Todas o una sede en particular).
+
+3. **Cinta Ejecutiva de KPIs:**
+   - **Ventas Brutas:** Facturación acumulada antes de bonificaciones.
+   - **Descuentos Otorgados:** Total de bonificaciones aplicadas en mostrador.
+   - **Cobro Neto:** Importe neto real percibido por ventas.
+   - **Prendas / Artículos Vendidos:** Sumatoria de cantidades de ítems facturados.
+   - **Ticket Promedio:** Venta promedio por comprobante.
+   - **Comprobantes Emitidos:** Cantidad de transacciones cerradas.
+
+4. **Tablas Resumen de Ventas (Desglose Multidimensional):**
+   - **Por Categoría:** Cantidad de prendas, facturación bruta, cobro neto y % de participación sobre el total de ventas.
+   - **Por Subcategoría:** Apertura fina de familias de productos con volumen de prendas y facturación.
+   - **Por Fabricante / Proveedor:** Rendimiento comercial clasificado por proveedor o marca.
+   - **Por Sucursal:** Comparativa de rendimiento entre Ushuaia (San Martín, Antártida) y Chubut (Trelew, Interior).
+   - **Por Medio de Pago:** Distribución de cobranza entre Efectivo, Débito, Crédito bancario, Transferencia y Crédito Personal.
+   - **Por Tipo de Comprobante:** Facturas A, Facturas B, Tickets y Remitos.
+
+5. **Tablero de Créditos y Cobranzas:**
+   - **Valor Base Otorgado:** Capital nominal financiado en las ventas del período.
+   - **Total en Cuotas:** Importe total financiado exigible (capital + intereses).
+   - **Total Cobrado:** Importes efectivamente recaudados y amortizados en el período.
+   - **Saldo Deudor / Deuda Exigible:** Saldo pendiente por cobrar de cuotas vencidas y a vencer.
+   - **Tasa de Recupero (%):** Ratio porcentual de cobranza efectiva sobre la cartera emitida.
+   - **Apertura por Sucursal:** Distribución de cartera y morosidad por sede emisora.
+
+6. **Exportación Analítica a Excel:**
+   - Ruta `/metricas/exportar-excel` con preservación estricta de los filtros activos de fecha y sucursal.
+   - Descarga con formato CSV delimitado por `;` y codificación UTF-8 BOM para apertura nativa e inmediata en Microsoft Excel.
+
+---
+
+### Módulo 9: Estándares Transversales de UI, Tablas Interactivas y Exportaciones
+
+1. **Ordenamiento Interactivo Homogéneo en Todas las Tablas (Click-to-Sort):**
+   - Implementado en el 100% de las tablas operativas del sistema: Ventas, Cajas/Turnos, Clientes, Créditos, Recibos, Proveedores, Remitos, Productos, Métricas, Auditoría, Sucursales, Medios de Pago y Puntos de Venta.
+   - Los encabezados de columnas ordenables permiten hacer clic para alternar entre orden ascendente (`asc`) y descendente (`desc`).
+   - Indicadores visuales claros: `▲` (ascendente activo), `▼` (descendente activo) y `⇅` (inactivo en hover).
+   - **Preservación Integral del Contexto:** Al ordenar por cualquier columna, se mantienen intactos todos los filtros activos (`search`, fechas, sucursales, categorías, estados, checkboxes) utilizando `request()->query()`.
+   - **Reseteo Determinista de Paginación:** Al cambiar el criterio de ordenamiento, la vista se reinicia a la página 1 (`page=1`) para evitar errores por páginas fuera de rango.
+
+2. **Exportación Fiel a Excel / CSV con Filtros Aplicados:**
+   - Requerimiento explícito: *"al exportar a excel, solo se exporte el resultado de la consulta con los filtros aplicados"*.
+   - Todos los controladores clonan la consulta exacta (`clone $query`) con todos los filtros y condiciones activas.
+   - El archivo exportado refleja con exactitud matemática el conjunto de datos visualizado por el operador.
+   - Descargas generadas con cabeceras descriptivas en español, formato numérico estándar y cabecera UTF-8 BOM (`\xEF\xBB\xBF`) para compatibilidad directa con Excel en Windows.
+
+3. **Arquitectura de Navegación y Menú Principal:**
+   - **Barra Superior Horizontal (`layouts/app.blade.php`):** Accesos directos permanentes a: `🛒 POS Mostrador`, `🧾 Ventas`, `💵 Cajas & Turnos`, `👥 Clientes`, `💳 Créditos`, `📦 Stock & Catálogo`, `📄 Compras & Remitos` y `📊 Métricas BI`.
+   - **Panel Principal (Dashboard de Inicio `dashboard.blade.php`):** Cuadrícula integral de accesos con tarjetas para Punto de Venta, Historial de Ventas (`/ventas`), Control de Caja, Catálogo de Stock, Compras y Remitos, Clientes, Créditos, Recibos, Métricas BI (`/metricas`) y Sistema/Auditoría.
 
 ---
 
@@ -451,4 +533,20 @@ Se adopta como **repositorio base el proyecto `laravel/creditos`** debido a que 
   - Integrar los módulos de generación y rendición de archivos bancarios (Banco Chubut y Banco Patagonia) adaptados a la nueva base relacional.
 - **Etapa E (Scripts de Ingesta desde `db.mdb`):**
   - Ejecutar la carga inicial de los 15.146 artículos y el padrón de clientes.
+
+---
+
+## 7. Infraestructura y Servidor de Producción
+
+- **Servidor SSH / SCP:** `root@app.tiendaslamarina.com.ar` (Host interno: `vps-4866941-x`)
+- **Ruta de Despliegue:** `/var/www/html/app`
+- **Dominio Principal:** `https://app.tiendaslamarina.com.ar`
+- **Servidor Web:** Nginx / Apache sobre Linux
+- **Base de Datos:** MySQL / MariaDB (`lamarina_v4`)
+- **Acceso Administrativo:** SSH mediante llave pública / credenciales root
+- **Comando SCP para Base de Datos:**
+  ```powershell
+  scp c:\wamp64\www\laravel\creditos\database\backups\lamarina_v4_prod_20261105_085736.zip root@app.tiendaslamarina.com.ar:/var/www/html/app
+  ```
+
 

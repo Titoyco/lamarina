@@ -12,6 +12,12 @@ class CondicionIva extends Model
     protected $table = 'condiciones_iva';
 
     protected $fillable = [
-        'nombre'
+        'nombre',
+        'codigo_afip'
     ];
+
+    public function proveedores()
+    {
+        return $this->hasMany(Proveedor::class, 'id_iva');
+    }
 }

@@ -12,14 +12,12 @@ class ProductoSubcategoria extends Model
     protected $table = 'productos_subcategorias';
 
     protected $fillable = [
-        'nombre'
+        'nombre',
+        'descripcion',
     ];
 
-
-    // Relación con Producto
     public function productos()
     {
         return $this->hasMany(Producto::class, 'subcategoria_id');
     }
-
 }

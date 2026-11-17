@@ -2,17 +2,19 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use OwenIt\Auditing\Contracts\Auditable;
 
-class Provincia extends Model
+class Provincia extends Model implements Auditable
 {
-    use HasFactory;
+    use \OwenIt\Auditing\Auditable;
 
-    protected $table = 'provincias'; // Asegúrate de que este nombre coincida con el de la tabla en la base de datos
+    protected $table = 'provincias';
 
-    protected $fillable = ['nombre', 'id'];
-    public function localidades()
+    protected $fillable = ['nombre'];
+
+    public function localidades(): HasMany
     {
         return $this->hasMany(Localidad::class, 'id_provincia');
     }
