@@ -245,35 +245,35 @@
                 <!-- Fila 1: Selector de Comprobante y Selector de Cliente -->
                 <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2.5 pb-2 border-b border-slate-100 dark:border-slate-700/60">
                     
-                    <!-- Selector de Comprobante (Pills compactas) -->
-                    <div class="flex flex-wrap items-center gap-1.5 text-xs">
-                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-1">Comprobante:</span>
+                    <!-- Selector de Comprobante (Pills compactas más chicas) -->
+                    <div class="flex flex-wrap items-center gap-1 text-[11px]">
+                        <span class="text-[9px] font-bold text-slate-500 uppercase tracking-wider mr-1">Comprobante:</span>
                         
                         <button type="button" 
                                 @click="seleccionarTipoComprobante('FACTURA_B')"
                                 :class="tipoComprobante === 'FACTURA_B' ? 'bg-indigo-600 text-white shadow-xs font-black' : 'bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600'"
-                                class="px-2.5 py-1 rounded-lg text-xs transition cursor-pointer">
+                                class="px-2 py-0.5 rounded-md text-[11px] font-semibold transition cursor-pointer">
                             Factura B
                         </button>
 
                         <button type="button" 
                                 @click="seleccionarTipoComprobante('FACTURA_A')"
                                 :class="tipoComprobante === 'FACTURA_A' ? 'bg-indigo-600 text-white shadow-xs font-black' : 'bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600'"
-                                class="px-2.5 py-1 rounded-lg text-xs transition cursor-pointer">
+                                class="px-2 py-0.5 rounded-md text-[11px] font-semibold transition cursor-pointer">
                             Factura A
                         </button>
 
                         <button type="button" 
                                 @click="seleccionarTipoComprobante('FACTURA_C')"
                                 :class="tipoComprobante === 'FACTURA_C' ? 'bg-indigo-600 text-white shadow-xs font-black' : 'bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600'"
-                                class="px-2.5 py-1 rounded-lg text-xs transition cursor-pointer">
+                                class="px-2 py-0.5 rounded-md text-[11px] font-semibold transition cursor-pointer">
                             Factura C
                         </button>
 
                         <button type="button" 
                                 @click="seleccionarTipoComprobante('REMITO')"
                                 :class="tipoComprobante === 'REMITO' ? 'bg-amber-600 text-white shadow-xs font-black' : 'bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600'"
-                                class="px-2.5 py-1 rounded-lg text-xs transition cursor-pointer"
+                                class="px-2 py-0.5 rounded-md text-[11px] font-semibold transition cursor-pointer"
                                 title="Descuenta stock. Facturación posterior.">
                             Remito
                         </button>
@@ -281,7 +281,7 @@
                         <button type="button" 
                                 @click="seleccionarTipoComprobante('PRESUPUESTO')"
                                 :class="tipoComprobante === 'PRESUPUESTO' ? 'bg-purple-600 text-white shadow-xs font-black' : 'bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600'"
-                                class="px-2.5 py-1 rounded-lg text-xs transition cursor-pointer"
+                                class="px-2 py-0.5 rounded-md text-[11px] font-semibold transition cursor-pointer"
                                 title="Cotización previa. No afecta stock ni se factura.">
                             Presupuesto
                         </button>
@@ -289,18 +289,18 @@
                         <button type="button" 
                                 @click="seleccionarTipoComprobante('NOTA_CREDITO')"
                                 :class="tipoComprobante.includes('NOTA_CREDITO') ? 'bg-rose-600 text-white shadow-xs font-black' : 'bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600'"
-                                class="px-2.5 py-1 rounded-lg text-xs transition cursor-pointer"
+                                class="px-2 py-0.5 rounded-md text-[11px] font-semibold transition cursor-pointer"
                                 title="Reingreso de mercadería / Devolución.">
                             Nota de Crédito
                         </button>
 
-                        <span class="text-[10px] text-slate-400 font-mono hidden sm:inline ml-1" x-text="nombreComprobanteActual"></span>
+                        <span class="text-[9px] text-slate-400 font-mono hidden sm:inline ml-1" x-text="nombreComprobanteActual"></span>
                     </div>
 
-                    <!-- Selector / Ficha de Cliente (Paso 1) -->
+                    <!-- Selector / Ficha de Cliente (Paso 1 - Campo más ancho y con badge de estado) -->
                     <div class="flex items-center gap-2">
                         <template x-if="!clienteSeleccionado">
-                            <div class="relative flex-grow sm:w-80">
+                            <div class="relative flex-grow sm:w-96 md:w-[440px]">
                                 <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
                                     <span>👤</span>
                                 </div>
@@ -317,44 +317,89 @@
                                     F2
                                 </span>
 
-                                <!-- Dropdown de sugerencias de clientes -->
+                                <!-- Dropdown de sugerencias de clientes con Estado Crediticio y Acceso a Legajo -->
                                 <div x-show="sugerenciasClientes.length > 0"
                                      @click.away="sugerenciasClientes = []"
-                                     class="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-50 max-h-56 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800"
+                                     class="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl z-50 max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800"
                                      x-cloak>
                                     <template x-for="(cl, idx) in sugerenciasClientes" :key="cl.id">
-                                        <button type="button" 
-                                                @click="seleccionarCliente(cl)"
-                                                :class="{'bg-indigo-50 dark:bg-slate-800 font-bold': idx === indiceSugerenciaCliente}"
-                                                class="w-full text-left p-2.5 hover:bg-indigo-50 dark:hover:bg-slate-800 transition flex items-center justify-between text-xs">
-                                            <div>
-                                                <span class="font-bold text-slate-900 dark:text-white block" x-text="cl.nombre || cl.razon_social"></span>
-                                                <span class="text-[10px] font-mono text-slate-400" x-text="'DNI/CUIT: ' + (cl.dni || cl.cuit || '-')"></span>
+                                        <div :class="{'bg-indigo-50/80 dark:bg-slate-800 font-bold': idx === indiceSugerenciaCliente}"
+                                             class="w-full text-left p-2.5 hover:bg-indigo-50 dark:hover:bg-slate-800 transition flex items-center justify-between gap-2 text-xs">
+                                            <div class="flex-grow cursor-pointer" @click="seleccionarCliente(cl)">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="font-bold text-slate-900 dark:text-white" x-text="cl.nombre || cl.razon_social"></span>
+                                                    
+                                                    <!-- Badge Habilitado / No Habilitado -->
+                                                    <template x-if="cl.habilitado">
+                                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9px] font-black uppercase bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+                                                            ✓ HABILITADO
+                                                        </span>
+                                                    </template>
+                                                    <template x-if="!cl.habilitado">
+                                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9px] font-black uppercase bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-700">
+                                                            ⚠ NO HABILITADO
+                                                        </span>
+                                                    </template>
+                                                </div>
+                                                <div class="flex items-center gap-2.5 mt-0.5 text-[10px] text-slate-500 dark:text-slate-400">
+                                                    <span class="font-mono" x-text="'DNI: ' + (cl.dni || cl.cuit || '-')"></span>
+                                                    <span class="font-bold text-emerald-600 dark:text-emerald-400" x-text="'Disp: $' + formatDinero(cl.limite_disponible)"></span>
+                                                    <template x-if="cl.deuda_acumulada > 0">
+                                                        <span class="text-slate-400" x-text="'Deuda: $' + formatDinero(cl.deuda_acumulada)"></span>
+                                                    </template>
+                                                    <template x-if="cl.tiene_mora">
+                                                        <span class="text-rose-600 dark:text-rose-400 font-bold">¡Con Mora!</span>
+                                                    </template>
+                                                </div>
                                             </div>
-                                            <span class="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold">Seleccionar ↵</span>
-                                        </button>
+
+                                            <div class="flex items-center gap-1 shrink-0">
+                                                <button type="button" 
+                                                        @click.stop="verLegajoDirecto(cl)"
+                                                        class="px-2 py-1 rounded-md text-[10px] font-bold bg-indigo-100 hover:bg-indigo-200 dark:bg-indigo-950 dark:hover:bg-indigo-900 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-700 flex items-center gap-1 cursor-pointer"
+                                                        title="Ver estado de cuenta y legajo del cliente">
+                                                    <span>📋 Legajo</span>
+                                                </button>
+                                                <button type="button" 
+                                                        @click="seleccionarCliente(cl)"
+                                                        class="px-2 py-1 rounded-md text-[10px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1 cursor-pointer">
+                                                    <span>Elegir ↵</span>
+                                                </button>
+                                            </div>
+                                        </div>
                                     </template>
                                 </div>
                             </div>
                         </template>
 
                         <template x-if="clienteSeleccionado">
-                            <div class="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 px-3 py-1 rounded-lg">
-                                <div>
-                                    <div class="flex items-center gap-1.5">
-                                        <span class="text-xs font-black text-indigo-950 dark:text-indigo-200" x-text="clienteSeleccionado.nombre"></span>
+                            <div class="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 px-3 py-1 rounded-xl">
+                                <div class="cursor-pointer hover:opacity-85 transition" 
+                                     @click="abrirModalCredito()" 
+                                     title="Haga clic para ver el legajo con disponibles, deudas y créditos pendientes">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs font-black text-indigo-950 dark:text-indigo-200 hover:underline" x-text="clienteSeleccionado.nombre"></span>
                                         <span class="text-[10px] font-mono bg-indigo-200 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-200 px-1 py-0.2 rounded font-bold" x-text="clienteSeleccionado.dni || 'Sin DNI'"></span>
+                                        
+                                        <template x-if="infoCredito">
+                                            <span class="px-1.5 py-0.2 rounded text-[9px] font-black uppercase"
+                                                  :class="infoCredito.estado_crediticio.habilitado ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-rose-100 text-rose-800 border border-rose-300'"
+                                                  x-text="infoCredito.estado_crediticio.habilitado ? '✓ HABILITADO' : '⚠ NO HABILITADO'">
+                                            </span>
+                                        </template>
                                     </div>
-                                    <template x-if="infoCredito">
-                                        <div class="text-[10px] text-indigo-700 dark:text-indigo-300 flex items-center gap-2">
-                                            <span>Disponible: <strong>$<span x-text="formatDinero(infoCredito.estado_crediticio.limite_disponible)"></span></strong></span>
-                                            <span>•</span>
-                                            <span>Hasta <strong x-text="infoCredito.estado_crediticio.max_cuotas"></strong> cuotas</span>
-                                        </div>
-                                    </template>
+                                    <div class="text-[10px] text-indigo-700 dark:text-indigo-300 flex items-center gap-2 mt-0.5">
+                                        <template x-if="infoCredito">
+                                            <span>Disp: <strong>$<span x-text="formatDinero(infoCredito.estado_crediticio.limite_disponible)"></span></strong></span>
+                                        </template>
+                                        <template x-if="infoCredito && infoCredito.estado_crediticio.deuda_acumulada > 0">
+                                            <span>• Deuda: $<span x-text="formatDinero(infoCredito.estado_crediticio.deuda_acumulada)"></span></span>
+                                        </template>
+                                        <span class="text-indigo-600 dark:text-indigo-400 font-bold underline flex items-center gap-0.5">📋 Ver Legajo</span>
+                                    </div>
                                 </div>
                                 <button type="button" @click="deseleccionarCliente()" 
-                                        class="text-xs text-rose-600 hover:text-rose-800 font-bold p-1 hover:bg-rose-100 rounded transition cursor-pointer"
+                                        class="text-xs text-rose-600 hover:text-rose-800 font-bold p-1 hover:bg-rose-100 rounded-lg transition cursor-pointer ml-1"
                                         title="Cambiar cliente (F2)">
                                     ✕
                                 </button>
@@ -1003,9 +1048,9 @@
 
                     <div class="p-2 rounded-xl border text-center"
                          :class="{
-                             'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800': calcularSaldoRestante() === 0 && calcularVueltoModal() === 0,
+                             'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800': calcularSaldoRestante() === 0 && (!tienePagoEfectivo() || calcularVueltoModal() === 0),
                              'bg-rose-50 dark:bg-rose-950/40 border-rose-300 dark:border-rose-800': calcularSaldoRestante() > 0,
-                             'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800': calcularVueltoModal() > 0
+                             'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800': tienePagoEfectivo() && calcularSaldoRestante() === 0 && calcularVueltoModal() > 0
                          }">
                         <template x-if="calcularSaldoRestante() > 0">
                             <div>
@@ -1014,13 +1059,13 @@
                                       x-text="'$ ' + formatDinero(calcularSaldoRestante())"></span>
                             </div>
                         </template>
-                        <template x-if="calcularSaldoRestante() === 0 && calcularVueltoModal() === 0">
+                        <template x-if="calcularSaldoRestante() === 0 && (!tienePagoEfectivo() || calcularVueltoModal() === 0)">
                             <div>
                                 <span class="text-[9px] font-black uppercase text-emerald-700 dark:text-emerald-300 block">Estado</span>
                                 <span class="text-xs sm:text-sm font-black text-emerald-600 dark:text-emerald-400 mt-1 block">✓ Cubierto 100%</span>
                             </div>
                         </template>
-                        <template x-if="calcularVueltoModal() > 0">
+                        <template x-if="tienePagoEfectivo() && calcularSaldoRestante() === 0 && calcularVueltoModal() > 0">
                             <div>
                                 <span class="text-[9px] font-black uppercase text-amber-700 dark:text-amber-300 block">Vuelto a entregar</span>
                                 <span class="text-base sm:text-lg font-mono font-black text-amber-600 dark:text-amber-400 tabular-nums block"
@@ -1936,6 +1981,10 @@
                     this.pagos[idx].codigo_forma = this.mapearCodigoFormaHasar(mp.tipo_base);
                     if (this.pagos.length === 1) {
                         this.medioPago = mp.codigo;
+                        this.pagos[idx].monto = this.calcularTotal();
+                    }
+                    if (!this.tienePagoEfectivo()) {
+                        this.pagaCon = 0;
                     }
                 },
                 establecerPagoUnico(codigo) {
@@ -1946,8 +1995,8 @@
                         this.focusCliente();
                         return;
                     }
-                    let tot = this.calcularTotal();
                     this.medioPago = mp.codigo;
+                    let tot = this.calcularTotal();
                     this.pagos = [
                         {
                             id_medio_pago: mp.id,
@@ -1961,6 +2010,8 @@
                     ];
                     if (mp.tipo_base === 'efectivo') {
                         this.pagaCon = tot;
+                    } else {
+                        this.pagaCon = 0;
                     }
                 },
                 calcularTotalCubierto() {
@@ -1970,6 +2021,9 @@
                     return Math.max(0, Math.round((this.calcularTotal() - this.calcularTotalCubierto()) * 100) / 100);
                 },
                 calcularVueltoModal() {
+                    if (!this.tienePagoEfectivo()) {
+                        return 0;
+                    }
                     let efectivo = (this.pagos || []).filter(p => p.tipo_base === 'efectivo').reduce((acc, p) => acc + (parseFloat(p.monto) || 0), 0);
                     let noEfectivo = (this.pagos || []).filter(p => p.tipo_base !== 'efectivo').reduce((acc, p) => acc + (parseFloat(p.monto) || 0), 0);
                     let restoParaEfectivo = Math.max(0, this.calcularTotal() - noEfectivo);
@@ -1994,7 +2048,9 @@
                 },
                 get esCredito() {
                     let mp = this.medioPagoActual;
-                    return (mp && (mp.tipo_base === 'credito' || mp.codigo === 'credito_personal')) || this.medioPago === 'credito_personal';
+                    return (mp && (mp.tipo_base === 'credito' || mp.codigo === 'credito_personal')) 
+                        || this.medioPago === 'credito_personal' 
+                        || this.tienePagoCreditoPersonal();
                 },
                 get esEfectivo() {
                     let mp = this.medioPagoActual;
@@ -3078,6 +3134,13 @@
                     }
                 },
 
+                async verLegajoDirecto(cl) {
+                    this.sugerenciasClientes = [];
+                    this.clienteQuery = '';
+                    await this.seleccionarCliente(cl);
+                    await this.abrirModalCredito();
+                },
+
                 async seleccionarCliente(cli) {
                     this.clienteSeleccionado = cli;
                     this.sugerenciasClientes = [];
@@ -3116,6 +3179,19 @@
                         return;
                     }
                     this.cuotasPlan = n;
+
+                    // Sincronizar automáticamente el monto cubierto por crédito personal con el total financiado
+                    let totFinanciado = this.calcularTotal(n);
+                    let pCred = (this.pagos || []).find(p => p.tipo_base === 'credito' || p.medio_pago === 'credito_personal');
+                    if (pCred) {
+                        if (this.pagos.length === 1) {
+                            pCred.monto = totFinanciado;
+                        } else {
+                            let otros = this.pagos.filter(p => p !== pCred).reduce((sum, p) => sum + (parseFloat(p.monto) || 0), 0);
+                            pCred.monto = Math.max(0, Math.round((totFinanciado - otros) * 100) / 100);
+                        }
+                    }
+
                     if (this.modalCredito) {
                         this.focusBtnAutorizarCredito();
                     } else if (this.creditoAutorizado) {
@@ -3302,8 +3378,12 @@
                         this.pagos[0].monto = this.calcularTotal();
                     }
 
-                    if (this.tienePagoEfectivo() && (!this.pagaCon || this.pagaCon < this.calcularTotal())) {
-                        this.pagaCon = this.calcularTotal();
+                    if (this.tienePagoEfectivo()) {
+                        if (!this.pagaCon || this.pagaCon < this.calcularTotal()) {
+                            this.pagaCon = this.calcularTotal();
+                        }
+                    } else {
+                        this.pagaCon = 0;
                     }
 
                     this.modalCobro = true;

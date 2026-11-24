@@ -515,8 +515,32 @@ class ClienteController extends Controller
             ->orderByRaw('CASE WHEN dni = ? OR nro_cuenta = ? THEN 0 WHEN dni LIKE ? THEN 1 ELSE 2 END', [$term, $term, "{$term}%"])
             ->orderBy('nombre')
             ->limit(15)
-            ->get(['id', 'id_sucursal', 'nombre', 'dni', 'nro_cuenta', 'cuit', 'saldo', 'suspendido']);
+            ->get(['id', 'id_sucursal', 'nombre', 'dni', 'nro_cuenta', 'cuit', 'saldo', 'suspendido', 'limite', 'max_cuotas']);
 
-        return response()->json($clientes);
+        $data = $clientes->map(function ($cl) {
+            $estado = $cl->estadoCrediticio();
+            return [
+                'id' => $cl->id,
+                'id_sucursal' => $cl->id_sucursal,
+                'sucursal' => $cl->sucursal?->nombre ?? 'N/A',
+                'nombre' => $cl->nombre,
+                'dni' => $cl->dni,
+                'cuit' => $cl->cuit,
+                'nro_cuenta' => $cl->nro_cuenta,
+                'saldo' => (float)$cl->saldo,
+                'suspendido' => (bool)$cl->suspendido,
+                'limite' => (float)($cl->limite ?? 0),
+                'habilitado' => $estado['habilitado'],
+                'tiene_mora' => $estado['tiene_mora'],
+                'total_mora' => (float)$estado['total_mora'],
+                'limite_disponible' => (float)$estado['limite_disponible'],
+                'limite_total' => (float)$estado['limite_total'],
+                'deuda_acumulada' => (float)$estado['deuda_acumulada'],
+                'max_cuotas' => (int)$estado['max_cuotas'],
+                'motivos_bloqueo' => $estado['motivos_bloqueo'],
+            ];
+        });
+
+        return response()->json($data);
     }
 }
