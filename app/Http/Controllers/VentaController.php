@@ -492,80 +492,8 @@ class VentaController extends Controller
             ];
         }
 
-        // Obtener cuotas impagas activas del cliente para el detalle de compras y próximos 4 meses
-        $cuotasImpagas = Cuota::whereHas('credito', function ($q) use ($cliente) {
-            $q->where('id_cliente', $cliente->id)
-              ->whereNull('fecha_cancelacion');
-        })
-        ->with(['credito.presentacion', 'credito.sucursal'])
-        ->where('saldo_actual', '>', 0)
-        ->whereNull('fecha_cobro')
-        ->get();
-
-        $loteActual = $presentacion ? (int)$presentacion->numero : 0;
-
-        // Estructura de los próximos 4 vencimientos (1° Mes, 2° Mes, 3° Mes, 4° Mes)
-        $proximosVencimientos = [];
-        for ($m = 1; $m <= 4; $m++) {
-            $targetLote = $loteActual > 0 ? ($loteActual + ($m - 1)) : $m;
-            $proximosVencimientos[$m] = [
-                'numero_mes' => $m,
-                'lote'       => $targetLote,
-                'cuotas'     => [],
-                'total'      => 0.0,
-            ];
-        }
-
-        $totalAdeudado = 0.0;
-        $pendienteCobro = 0.0;
-
-        foreach ($cuotasImpagas as $c) {
-            $saldo = (float) $c->saldo_actual;
-            $totalAdeudado += $saldo;
-
-            // Formato de código de crédito visible: ej "00326983 T"
-            $codNum = preg_replace('/[^0-9]/', '', (string)($c->credito?->credito ?? '0'));
-            $codNumPad = str_pad($codNum ?: '0', 7, '0', STR_PAD_LEFT);
-            $tipoCred = strtoupper($c->credito?->tipo_credito ?? 'T');
-            $identificador = "{$codNumPad} {$tipoCred}";
-
-            $nroCuota = (int) ($c->num_cuota ?? 1);
-            $loteCuota = (int) ($c->lote_calculado ?? (($c->credito?->presentacion?->numero ?? 0) + $nroCuota));
-
-            $cuotaItem = [
-                'id'            => $c->id,
-                'id_credito'    => $c->id_credito,
-                'identificador' => $identificador,
-                'num_cuota'     => $nroCuota,
-                'lote'          => $loteCuota,
-                'saldo'         => $saldo,
-            ];
-
-            if ($loteActual > 0) {
-                if ($loteCuota <= $loteActual) {
-                    $proximosVencimientos[1]['cuotas'][] = $cuotaItem;
-                    $proximosVencimientos[1]['total'] += $saldo;
-                    $pendienteCobro += $saldo;
-                } elseif ($loteCuota === $loteActual + 1) {
-                    $proximosVencimientos[2]['cuotas'][] = $cuotaItem;
-                    $proximosVencimientos[2]['total'] += $saldo;
-                } elseif ($loteCuota === $loteActual + 2) {
-                    $proximosVencimientos[3]['cuotas'][] = $cuotaItem;
-                    $proximosVencimientos[3]['total'] += $saldo;
-                } elseif ($loteCuota === $loteActual + 3) {
-                    $proximosVencimientos[4]['cuotas'][] = $cuotaItem;
-                    $proximosVencimientos[4]['total'] += $saldo;
-                }
-            } else {
-                $proximosVencimientos[1]['cuotas'][] = $cuotaItem;
-                $proximosVencimientos[1]['total'] += $saldo;
-                $pendienteCobro += $saldo;
-            }
-        }
-
-        for ($m = 1; $m <= 4; $m++) {
-            $proximosVencimientos[$m]['total'] = round($proximosVencimientos[$m]['total'], 2);
-        }
+        // Resumen financiero unificado de cuotas (Deuda total, atrasado, este mes, total a pagar y próximos 3 meses)
+        $resumenCuotas = $cliente->calcularResumenCuotas($sucursalId);
 
         // Novedades ordenadas con la más reciente encima
         $novedades = $cliente->novedades()
@@ -595,14 +523,20 @@ class VentaController extends Controller
                 'limite_efectivo' => $limiteActual,
             ],
             'estado_crediticio'    => $estado,
+            'resumen_cuotas'       => $resumenCuotas,
             'detalle_compras'      => [
-                'total_adeudado'   => round($totalAdeudado, 2),
-                'pendiente_cobro'  => round($pendienteCobro, 2),
-                'mora_vencido'     => round((float)$estado['total_mora'], 2),
-                'limite_disponible'=> (float) $estado['limite_disponible'],
-                'limite_total'     => $limiteActual,
+                'deuda_total'            => $resumenCuotas['deuda_total'],
+                'total_adeudado'         => $resumenCuotas['deuda_total'],
+                'atrasado'               => $resumenCuotas['atrasado'],
+                'este_mes'               => $resumenCuotas['este_mes'],
+                'total_a_pagar'          => $resumenCuotas['total_a_pagar'],
+                'pendiente_cobro'        => $resumenCuotas['total_a_pagar'],
+                'total_proximos_3_meses' => $resumenCuotas['total_proximos_3_meses'],
+                'mora_vencido'           => $resumenCuotas['atrasado'],
+                'limite_disponible'      => (float) $estado['limite_disponible'],
+                'limite_total'           => $limiteActual,
             ],
-            'proximos_vencimientos'=> array_values($proximosVencimientos),
+            'proximos_vencimientos'=> array_values($resumenCuotas['proximos_meses']),
             'novedades'            => $novedades,
             'tasa_interes'         => $tasaInteres,
             'presentacion'         => [

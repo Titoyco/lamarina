@@ -248,6 +248,30 @@
                     </div>
 
                     <div class="border-t border-blue-800/80 mt-3 pt-2.5 space-y-1.5">
+                        @if(isset($resumenCuotas))
+                            <div class="grid grid-cols-2 gap-1.5 bg-blue-900/60 p-2 rounded-lg border border-blue-800 text-[10px] font-mono mb-2">
+                                <div>
+                                    <span class="text-blue-300 block text-[9px] uppercase font-sans">Deuda Total:</span>
+                                    <strong class="text-white text-xs">$ {{ number_format($resumenCuotas['deuda_total'], 2, ',', '.') }}</strong>
+                                </div>
+                                <div>
+                                    <span class="text-rose-300 block text-[9px] uppercase font-sans">Atrasado:</span>
+                                    <strong class="{{ $resumenCuotas['atrasado'] > 0 ? 'text-rose-400' : 'text-slate-300' }} text-xs">$ {{ number_format($resumenCuotas['atrasado'], 2, ',', '.') }}</strong>
+                                </div>
+                                <div>
+                                    <span class="text-sky-300 block text-[9px] uppercase font-sans">Este Mes:</span>
+                                    <strong class="text-sky-200 text-xs">$ {{ number_format($resumenCuotas['este_mes'], 2, ',', '.') }}</strong>
+                                </div>
+                                <div>
+                                    <span class="text-amber-300 block text-[9px] uppercase font-sans">Total a Pagar:</span>
+                                    <strong class="text-amber-400 text-xs">$ {{ number_format($resumenCuotas['total_a_pagar'], 2, ',', '.') }}</strong>
+                                </div>
+                                <div class="col-span-2 pt-1 border-t border-blue-800/70 flex justify-between">
+                                    <span class="text-blue-300 text-[9px] uppercase font-sans">Próx. 3 Meses:</span>
+                                    <strong class="text-emerald-300">$ {{ number_format($resumenCuotas['total_proximos_3_meses'], 2, ',', '.') }}</strong>
+                                </div>
+                            </div>
+                        @endif
                         <div class="flex justify-between items-center text-[11px]">
                             <span class="text-blue-300 font-medium">Nro. de Cuenta:</span>
                             <span class="font-mono font-bold text-white">{{ $cliente->nro_cuenta ?? 'Sin asignar' }}</span>

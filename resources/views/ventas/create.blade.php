@@ -747,25 +747,35 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <!-- Columna Izquierda: DETALLE DE COMPRAS -->
                                 <div class="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2">
-                                    <h4 class="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight border-b border-slate-200 dark:border-slate-700 pb-1.5">
-                                        DETALLE DE COMPRAS:
+                                    <h4 class="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight border-b border-slate-200 dark:border-slate-700 pb-1.5 flex justify-between items-center">
+                                        <span>ESTADO DE CUENTA Y RESUMEN:</span>
                                     </h4>
                                     <div class="space-y-1.5 text-xs font-mono">
                                         <div class="flex justify-between items-center">
-                                            <span class="text-slate-600 dark:text-slate-400 font-sans font-bold">TOTAL ADEUDADO:</span>
+                                            <span class="text-slate-600 dark:text-slate-400 font-sans font-bold">DEUDA TOTAL (Falta pagar):</span>
                                             <span class="text-sm font-black text-slate-900 dark:text-white" 
-                                                  x-text="'$ ' + formatDinero(infoCredito.detalle_compras?.total_adeudado || infoCredito.estado_crediticio?.deuda_acumulada || 0)"></span>
+                                                  x-text="'$ ' + formatDinero(infoCredito.detalle_compras?.deuda_total || infoCredito.resumen_cuotas?.deuda_total || infoCredito.estado_crediticio?.deuda_acumulada || 0)"></span>
                                         </div>
                                         <div class="flex justify-between items-center">
-                                            <span class="text-slate-600 dark:text-slate-400 font-sans font-bold">PENDIENTE DE COBRO (A PAGAR):</span>
-                                            <span class="text-sm font-black text-indigo-700 dark:text-indigo-300" 
-                                                  x-text="'$ ' + formatDinero(infoCredito.detalle_compras?.pendiente_cobro || 0)"></span>
+                                            <span class="text-slate-600 dark:text-slate-400 font-sans font-bold">ATRASADO (Meses anteriores):</span>
+                                            <span class="text-sm font-black"
+                                                  :class="(infoCredito.detalle_compras?.atrasado || infoCredito.resumen_cuotas?.atrasado || 0) > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-700 dark:text-slate-300'"
+                                                  x-text="'$ ' + formatDinero(infoCredito.detalle_compras?.atrasado || infoCredito.resumen_cuotas?.atrasado || 0)"></span>
                                         </div>
                                         <div class="flex justify-between items-center">
-                                            <span class="text-slate-600 dark:text-slate-400 font-sans font-bold">MORA (VENCIDO):</span>
-                                            <span class="text-sm font-black" 
-                                                  :class="(infoCredito.detalle_compras?.mora_vencido || infoCredito.estado_crediticio?.total_mora || 0) > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-800 dark:text-slate-200'"
-                                                  x-text="'$ ' + formatDinero(infoCredito.detalle_compras?.mora_vencido || infoCredito.estado_crediticio?.total_mora || 0)"></span>
+                                            <span class="text-slate-600 dark:text-slate-400 font-sans font-bold">ESTE MES (Mes actual):</span>
+                                            <span class="text-sm font-black text-sky-700 dark:text-sky-400" 
+                                                  x-text="'$ ' + formatDinero(infoCredito.detalle_compras?.este_mes || infoCredito.resumen_cuotas?.este_mes || 0)"></span>
+                                        </div>
+                                        <div class="flex justify-between items-center p-1 rounded bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700">
+                                            <span class="text-amber-900 dark:text-amber-200 font-sans font-black text-[11px] uppercase">TOTAL A PAGAR (Atrasado + Actual):</span>
+                                            <span class="text-sm font-black text-amber-700 dark:text-amber-300" 
+                                                  x-text="'$ ' + formatDinero(infoCredito.detalle_compras?.total_a_pagar || infoCredito.resumen_cuotas?.total_a_pagar || 0)"></span>
+                                        </div>
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-slate-600 dark:text-slate-400 font-sans font-bold">PRÓXIMOS 3 MESES:</span>
+                                            <span class="text-xs font-bold text-slate-700 dark:text-slate-300" 
+                                                  x-text="'$ ' + formatDinero(infoCredito.detalle_compras?.total_proximos_3_meses || infoCredito.resumen_cuotas?.total_proximos_3_meses || 0)"></span>
                                         </div>
                                         <div class="flex justify-between items-center pt-1 border-t border-slate-200 dark:border-slate-700">
                                             <span class="text-slate-600 dark:text-slate-400 font-sans font-bold">MONTO DISPONIBLE:</span>
@@ -842,29 +852,34 @@
                                 </div>
                             </div>
 
-                            <!-- FILA CENTRAL: PRÓXIMOS VENCIMIENTOS (TABLA 4 MESES) -->
+                            <!-- FILA CENTRAL: PRÓXIMOS 3 MESES -->
                             <div class="space-y-1.5">
-                                <h4 class="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight underline">
-                                    PROXIMOS VENCIMIENTOS:
-                                </h4>
+                                <div class="flex items-center justify-between">
+                                    <h4 class="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight underline">
+                                        PRÓXIMOS 3 MESES:
+                                    </h4>
+                                    <span class="text-xs font-mono font-bold text-slate-500" x-show="infoCredito.detalle_compras?.total_proximos_3_meses > 0">
+                                        Total Próx. 3 Meses: $<span x-text="formatDinero(infoCredito.detalle_compras?.total_proximos_3_meses)"></span>
+                                    </span>
+                                </div>
                                 <div class="border border-slate-300 dark:border-slate-700 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
-                                    <!-- Cabecera de 4 Meses -->
-                                    <div class="grid grid-cols-4 bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 text-center font-black text-xs py-2 text-slate-800 dark:text-slate-200">
+                                    <!-- Cabecera de 3 Meses -->
+                                    <div class="grid grid-cols-3 bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 text-center font-black text-xs py-2 text-slate-800 dark:text-slate-200">
                                         <template x-for="mes in (infoCredito.proximos_vencimientos || [])" :key="mes.numero_mes">
                                             <div class="border-r last:border-r-0 border-slate-300 dark:border-slate-700 px-1">
-                                                <span x-text="mes.numero_mes + '° Mes (Lote ' + mes.lote + ')'"></span>
+                                                <span x-text="(mes.label || (mes.numero_mes + '° Mes Próx.')) + ' (Lote ' + mes.lote + ')'"></span>
                                             </div>
                                         </template>
                                     </div>
-                                    <!-- Celdas de 4 Meses con Cuotas y Totales -->
-                                    <div class="grid grid-cols-4 min-h-[85px] divide-x divide-slate-300 dark:divide-slate-700 text-xs">
+                                    <!-- Celdas de 3 Meses con Cuotas y Totales -->
+                                    <div class="grid grid-cols-3 min-h-[85px] divide-x divide-slate-300 dark:divide-slate-700 text-xs">
                                         <template x-for="mes in (infoCredito.proximos_vencimientos || [])" :key="'col-' + mes.numero_mes">
                                             <div class="p-2 flex flex-col justify-between bg-white dark:bg-slate-900">
                                                 <div class="space-y-1 max-h-28 overflow-y-auto">
                                                     <template x-for="c in mes.cuotas" :key="c.id">
                                                         <div class="p-1 rounded bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono text-[11px] flex items-center justify-between">
                                                             <span class="font-bold text-indigo-900 dark:text-indigo-300 truncate" x-text="c.identificador"></span>
-                                                            <span class="px-1 text-slate-500 font-bold" x-text="c.num_cuota"></span>
+                                                            <span class="px-1 text-slate-500 font-bold" x-text="'C/' + c.num_cuota"></span>
                                                             <span class="font-black text-slate-900 dark:text-slate-100" x-text="'$' + formatDinero(c.saldo)"></span>
                                                         </div>
                                                     </template>

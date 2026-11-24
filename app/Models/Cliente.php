@@ -192,4 +192,132 @@ class Cliente extends Model implements Auditable
             'motivos_bloqueo' => $motivosBloqueo,
         ];
     }
+
+    /**
+     * Calcula de forma precisa y unificada el estado y resumen de cuotas del cliente:
+     * - Deuda total (todo lo que falta pagar)
+     * - Lo atrasado (lo que quedó pendiente de meses anteriores)
+     * - Lo que tiene que pagar este mes (mes actual / lote activo)
+     * - Total a pagar inmediato (atrasado + este mes)
+     * - Lo que tiene que pagar en los próximos 3 meses (desglose por mes)
+     */
+    public function calcularResumenCuotas(?int $sucursalId = null): array
+    {
+        $sucursalId = $sucursalId ?? $this->id_sucursal ?? 1;
+        $presentacionActiva = Presentacion::activaParaSucursal($sucursalId);
+        $loteActivo = $presentacionActiva ? (int)$presentacionActiva->numero : 0;
+
+        $cuotasPendientes = Cuota::whereHas('credito', function ($q) {
+            $q->where('id_cliente', $this->id)
+              ->whereNull('fecha_cancelacion');
+        })
+        ->where('saldo_actual', '>', 0)
+        ->whereNull('fecha_cobro')
+        ->with(['credito.presentacion', 'credito.sucursal'])
+        ->get();
+
+        $deudaTotal = 0.0;
+        $atrasado = 0.0;
+        $esteMes = 0.0;
+        $cuotasAtrasadas = [];
+        $cuotasEsteMes = [];
+
+        $proximosMeses = [
+            1 => [
+                'numero_mes' => 1,
+                'lote'       => $loteActivo > 0 ? $loteActivo + 1 : 1,
+                'label'      => '1° Mes Próx.',
+                'total'      => 0.0,
+                'cuotas'     => [],
+            ],
+            2 => [
+                'numero_mes' => 2,
+                'lote'       => $loteActivo > 0 ? $loteActivo + 2 : 2,
+                'label'      => '2° Mes Próx.',
+                'total'      => 0.0,
+                'cuotas'     => [],
+            ],
+            3 => [
+                'numero_mes' => 3,
+                'lote'       => $loteActivo > 0 ? $loteActivo + 3 : 3,
+                'label'      => '3° Mes Próx.',
+                'total'      => 0.0,
+                'cuotas'     => [],
+            ],
+        ];
+        $posteriores = 0.0;
+
+        foreach ($cuotasPendientes as $c) {
+            $saldo = (float) $c->saldo_actual;
+            $deudaTotal += $saldo;
+
+            $nroCuota = (int) ($c->num_cuota ?? 1);
+            $loteCuota = (int) ($c->lote_calculado ?? (($c->credito?->presentacion?->numero ?? 0) + $nroCuota));
+
+            $cuotaItem = [
+                'id'            => $c->id,
+                'id_credito'    => $c->id_credito,
+                'identificador' => $c->credito?->full_identificador ?? ('#' . $c->id_credito),
+                'num_cuota'     => $nroCuota,
+                'lote'          => $loteCuota,
+                'saldo'         => $saldo,
+                'vencimiento'   => $c->fecha_vencimiento ? $c->fecha_vencimiento->format('d/m/Y') : null,
+            ];
+
+            if ($loteActivo > 0) {
+                if ($loteCuota < $loteActivo) {
+                    $atrasado += $saldo;
+                    $cuotasAtrasadas[] = $cuotaItem;
+                } elseif ($loteCuota === $loteActivo) {
+                    $esteMes += $saldo;
+                    $cuotasEsteMes[] = $cuotaItem;
+                } elseif ($loteCuota === $loteActivo + 1) {
+                    $proximosMeses[1]['total'] += $saldo;
+                    $proximosMeses[1]['cuotas'][] = $cuotaItem;
+                } elseif ($loteCuota === $loteActivo + 2) {
+                    $proximosMeses[2]['total'] += $saldo;
+                    $proximosMeses[2]['cuotas'][] = $cuotaItem;
+                } elseif ($loteCuota === $loteActivo + 3) {
+                    $proximosMeses[3]['total'] += $saldo;
+                    $proximosMeses[3]['cuotas'][] = $cuotaItem;
+                } else {
+                    $posteriores += $saldo;
+                }
+            } else {
+                $venc = $c->fecha_vencimiento;
+                $ahora = now();
+                if ($venc && $venc->lt($ahora->copy()->startOfMonth())) {
+                    $atrasado += $saldo;
+                    $cuotasAtrasadas[] = $cuotaItem;
+                } elseif ($venc && $venc->between($ahora->copy()->startOfMonth(), $ahora->copy()->endOfMonth())) {
+                    $esteMes += $saldo;
+                    $cuotasEsteMes[] = $cuotaItem;
+                } else {
+                    $proximosMeses[1]['total'] += $saldo;
+                    $proximosMeses[1]['cuotas'][] = $cuotaItem;
+                }
+            }
+        }
+
+        $totalAPagar = round($atrasado + $esteMes, 2);
+        $totalProx3 = round($proximosMeses[1]['total'] + $proximosMeses[2]['total'] + $proximosMeses[3]['total'], 2);
+
+        $limiteTotal = (float) ($this->limite_efectivo ?? $this->limite ?? 0);
+        $limiteDisponible = max(0, round($limiteTotal - $deudaTotal, 2));
+
+        return [
+            'deuda_total'            => round($deudaTotal, 2),
+            'atrasado'               => round($atrasado, 2),
+            'cuotas_atrasadas'       => $cuotasAtrasadas,
+            'este_mes'               => round($esteMes, 2),
+            'cuotas_este_mes'        => $cuotasEsteMes,
+            'total_a_pagar'          => $totalAPagar,
+            'proximos_meses'         => $proximosMeses,
+            'total_proximos_3_meses' => $totalProx3,
+            'posteriores'            => round($posteriores, 2),
+            'limite_total'           => $limiteTotal,
+            'limite_disponible'      => $limiteDisponible,
+            'lote_activo'            => $loteActivo,
+        ];
+    }
 }

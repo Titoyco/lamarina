@@ -683,36 +683,9 @@ class CreditoController extends Controller
         // Estado crediticio / Deuda acumulada y mora del cliente
         $estadoCrediticio = $cliente ? $cliente->estadoCrediticio() : null;
 
-        // Próximos vencimientos del cliente (4 meses a partir del lote activo de la sucursal)
-        $sucursalId = $credito->id_sucursal ?? 1;
-        $presentacionActiva = Presentacion::activaParaSucursal($sucursalId) ?? $credito->presentacion;
-        $loteBase = $presentacionActiva ? (int)$presentacionActiva->numero : 0;
-
-        $proximosMeses = [];
-        if ($cliente && $loteBase > 0) {
-            $cuotasPendientes = Cuota::whereHas('credito', function ($q) use ($cliente) {
-                $q->where('id_cliente', $cliente->id)
-                  ->whereNull('fecha_cancelacion');
-            })
-            ->where('saldo_actual', '>', 0)
-            ->whereNull('fecha_cobro')
-            ->with(['credito.presentacion'])
-            ->get();
-
-            for ($i = 1; $i <= 4; $i++) {
-                $targetLote = $loteBase + $i;
-                $cuotasDelMes = $cuotasPendientes->filter(function ($c) use ($targetLote) {
-                    return (int)$c->lote_calculado === $targetLote;
-                });
-
-                $proximosMeses[$i] = [
-                    'numero_mes' => $i,
-                    'lote'       => $targetLote,
-                    'cuotas'     => $cuotasDelMes,
-                    'total'      => (float)$cuotasDelMes->sum('saldo_actual'),
-                ];
-            }
-        }
+        // Resumen financiero unificado de cuotas (Deuda total, atrasado, este mes, total a pagar y próximos 3 meses)
+        $resumenCuotas = $cliente ? $cliente->calcularResumenCuotas($credito->id_sucursal) : null;
+        $proximosMeses = $resumenCuotas ? $resumenCuotas['proximos_meses'] : [];
 
         return view('creditos.pagare', compact(
             'credito',
@@ -721,6 +694,7 @@ class CreditoController extends Controller
             'concepto',
             'montoEnLetras',
             'estadoCrediticio',
+            'resumenCuotas',
             'proximosMeses'
         ));
     }

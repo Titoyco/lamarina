@@ -454,6 +454,9 @@ class ClienteController extends Controller
         $totalRestante    = $totalValorBase + $totalIntereses - $totalEntregado - $totalAPagar;  // Total Restante / Saldo Pendiente
         $recibos          = $cliente->recibos;
 
+        // Resumen financiero unificado de cuotas (Deuda total, atrasado, este mes, total a pagar y próximos 3 meses)
+        $resumenCuotas = $cliente->calcularResumenCuotas();
+
         return view('clientes.estado-cuenta', compact(
             'cliente',
             'creditosAbiertos',
@@ -463,6 +466,7 @@ class ClienteController extends Controller
             'totalEntregado',
             'totalAPagar',
             'totalRestante',
+            'resumenCuotas',
             'recibos'
         ));
     }
@@ -470,7 +474,8 @@ class ClienteController extends Controller
     public function show(Cliente $cliente)
     {
         $cliente->load(['autorizados', 'novedades.user', 'sucursal']); // Cargar relaciones necesarias para la vista de detalle
-        return view('clientes.show', compact('cliente'));
+        $resumenCuotas = $cliente->calcularResumenCuotas();
+        return view('clientes.show', compact('cliente', 'resumenCuotas'));
     }
 
     public function storeNovedad(Request $request, Cliente $cliente)

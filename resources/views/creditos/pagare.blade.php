@@ -288,60 +288,104 @@
         </tr>
     </table>
 
-    <!-- Detalle de Cuenta Corriente y Próximos Vencimientos (Referencia Histórica La Marina) -->
-    @if(!empty($estadoCrediticio))
-        <div style="margin-top: 10px; font-size: 10.5px; border-top: 1px solid #e2e8f0; padding-top: 6px;">
-            <p style="font-size: 11px; margin: 2px 0; font-weight: bold;"><u>DETALLE DE CUENTA CORRIENTE:</u></p>
-            <div style="display: flex; gap: 24px; font-size: 10.5px; margin-top: 2px;">
-                <div>TOTAL ADEUDADO: <strong>$ {{ number_format($estadoCrediticio['deuda_acumulada'], 2, ',', '.') }}</strong></div>
-                <div style="color: {{ $estadoCrediticio['tiene_mora'] ? '#dc2626' : '#334155' }};">
-                    MORA (VENCIDO): <strong>$ {{ number_format($estadoCrediticio['total_mora'], 2, ',', '.') }}</strong>
-                </div>
-                <div>LÍMITE DISPONIBLE: <strong>$ {{ number_format($estadoCrediticio['limite_disponible'], 2, ',', '.') }}</strong></div>
-            </div>
-        </div>
-    @endif
+    <!-- Resumen de Cuenta Corriente y Cuotas a Pagar (Referencia Oficial La Marina) -->
+    @if(!empty($resumenCuotas) || !empty($estadoCrediticio))
+        @php
+            $r = $resumenCuotas ?? [
+                'deuda_total' => $estadoCrediticio['deuda_acumulada'] ?? 0,
+                'atrasado' => $estadoCrediticio['total_mora'] ?? 0,
+                'este_mes' => 0,
+                'total_a_pagar' => ($estadoCrediticio['total_mora'] ?? 0),
+                'proximos_meses' => $proximosMeses ?? [],
+                'total_proximos_3_meses' => 0,
+                'limite_disponible' => $estadoCrediticio['limite_disponible'] ?? 0,
+            ];
+        @endphp
+        <div style="margin-top: 8px; font-size: 10.5px; border-top: 1px solid #cbd5e1; padding-top: 6px;">
+            <p style="font-size: 11px; margin: 2px 0 5px 0; font-weight: bold; text-transform: uppercase;">
+                <u>Resumen de Cuenta Corriente y Cuotas a Pagar:</u>
+            </p>
 
-    @if(!empty($proximosMeses))
-        <div style="margin-top: 8px;">
-            <p style="font-size: 11px; margin: 2px 0; font-weight: bold;"><u>PRÓXIMOS VENCIMIENTOS:</u></p>
-            <table class="tabla-border" style="width: 100%; font-size: 9.5px; margin-top: 2px;">
-                <thead>
-                    <tr class="bg-gris">
-                        <th style="width: 25%;">1° Mes (Lote {{ $proximosMeses[1]['lote'] ?? '-' }})</th>
-                        <th style="width: 25%;">2° Mes (Lote {{ $proximosMeses[2]['lote'] ?? '-' }})</th>
-                        <th style="width: 25%;">3° Mes (Lote {{ $proximosMeses[3]['lote'] ?? '-' }})</th>
-                        <th style="width: 25%;">4° Mes (Lote {{ $proximosMeses[4]['lote'] ?? '-' }})</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        @for($i = 1; $i <= 4; $i++)
-                            <td style="vertical-align: top; height: 36px; padding: 2px;">
-                                @if(!empty($proximosMeses[$i]['cuotas']) && $proximosMeses[$i]['cuotas']->isNotEmpty())
-                                    <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
-                                        @foreach($proximosMeses[$i]['cuotas'] as $c)
-                                            <tr>
-                                                <td>{{ $c->credito?->full_identificador }} C/{{ $c->num_cuota }}</td>
-                                                <td class="text-right">$ {{ number_format($c->saldo_actual, 2, ',', '.') }}</td>
-                                            </tr>
-                                        @endforeach
-                                    </table>
-                                @else
-                                    <div class="text-center" style="color: #94a3b8; padding-top: 8px;">-</div>
-                                @endif
-                            </td>
-                        @endfor
-                    </tr>
-                    <tr class="bg-gris">
-                        @for($i = 1; $i <= 4; $i++)
-                            <td class="text-center font-bold">
-                                Total: $ {{ number_format($proximosMeses[$i]['total'] ?? 0, 2, ',', '.') }}
-                            </td>
-                        @endfor
-                    </tr>
-                </tbody>
+            <!-- Cuadrícula Resumen Financiero: Deuda Total, Atrasado, Este Mes, Total a Pagar -->
+            <table class="tabla-border" style="width: 100%; font-size: 10px; margin-bottom: 5px;">
+                <tr class="bg-gris">
+                    <th style="width: 25%;">DEUDA TOTAL<br/><span style="font-size: 8.5px; font-weight: normal;">(Todo lo que falta pagar)</span></th>
+                    <th style="width: 25%;">ATRASADO<br/><span style="font-size: 8.5px; font-weight: normal;">(Meses anteriores)</span></th>
+                    <th style="width: 25%;">ESTE MES<br/><span style="font-size: 8.5px; font-weight: normal;">(Mes actual)</span></th>
+                    <th style="width: 25%; background-color: #fef08a; color: #854d0e;">TOTAL A PAGAR<br/><span style="font-size: 8.5px; font-weight: normal;">(Atrasado + Actual)</span></th>
+                </tr>
+                <tr>
+                    <td class="text-center font-bold" style="font-size: 11.5px; padding: 3px;">
+                        $ {{ number_format($r['deuda_total'], 2, ',', '.') }}
+                    </td>
+                    <td class="text-center font-bold" style="font-size: 11.5px; padding: 3px; color: {{ $r['atrasado'] > 0 ? '#dc2626' : '#1e293b' }};">
+                        $ {{ number_format($r['atrasado'], 2, ',', '.') }}
+                    </td>
+                    <td class="text-center font-bold" style="font-size: 11.5px; padding: 3px; color: {{ $r['este_mes'] > 0 ? '#0369a1' : '#1e293b' }};">
+                        $ {{ number_format($r['este_mes'], 2, ',', '.') }}
+                    </td>
+                    <td class="text-center font-bold" style="font-size: 12.5px; padding: 3px; background-color: #fef9c3; color: #a16207;">
+                        $ {{ number_format($r['total_a_pagar'], 2, ',', '.') }}
+                    </td>
+                </tr>
             </table>
+
+            <!-- Próximos 3 Meses -->
+            <div style="margin-top: 3px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+                    <span style="font-size: 10px; font-weight: bold; text-transform: uppercase;">
+                        <u>Próximos 3 Meses:</u>
+                    </span>
+                    <span style="font-size: 9.5px; color: #475569;">
+                        Límite Disponible: <strong>$ {{ number_format($r['limite_disponible'] ?? 0, 2, ',', '.') }}</strong>
+                    </span>
+                </div>
+
+                <table class="tabla-border" style="width: 100%; font-size: 9.5px;">
+                    <thead>
+                        <tr class="bg-gris">
+                            <th style="width: 33.3%;">1° Mes Próx. (Lote {{ $r['proximos_meses'][1]['lote'] ?? '-' }})</th>
+                            <th style="width: 33.3%;">2° Mes Próx. (Lote {{ $r['proximos_meses'][2]['lote'] ?? '-' }})</th>
+                            <th style="width: 33.3%;">3° Mes Próx. (Lote {{ $r['proximos_meses'][3]['lote'] ?? '-' }})</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            @for($i = 1; $i <= 3; $i++)
+                                <td style="vertical-align: top; height: 30px; padding: 2px;">
+                                    @php
+                                        $cuotasCol = $r['proximos_meses'][$i]['cuotas'] ?? [];
+                                    @endphp
+                                    @if(!empty($cuotasCol) && (is_array($cuotasCol) ? count($cuotasCol) > 0 : $cuotasCol->isNotEmpty()))
+                                        <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
+                                            @foreach($cuotasCol as $c)
+                                                @php
+                                                    $ident = is_array($c) ? ($c['identificador'] ?? '') : ($c->credito?->full_identificador ?? '');
+                                                    $numC = is_array($c) ? ($c['num_cuota'] ?? '') : $c->num_cuota;
+                                                    $saldoC = is_array($c) ? ($c['saldo'] ?? 0) : $c->saldo_actual;
+                                                @endphp
+                                                <tr>
+                                                    <td>{{ $ident }} C/{{ $numC }}</td>
+                                                    <td class="text-right font-mono">$ {{ number_format($saldoC, 2, ',', '.') }}</td>
+                                                </tr>
+                                            @endforeach
+                                        </table>
+                                    @else
+                                        <div class="text-center" style="color: #94a3b8; padding-top: 5px;">-</div>
+                                    @endif
+                                </td>
+                            @endfor
+                        </tr>
+                        <tr class="bg-gris">
+                            @for($i = 1; $i <= 3; $i++)
+                                <td class="text-center font-bold" style="font-size: 9.5px;">
+                                    Total: $ {{ number_format($r['proximos_meses'][$i]['total'] ?? 0, 2, ',', '.') }}
+                                </td>
+                            @endfor
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     @endif
 

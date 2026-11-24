@@ -36,27 +36,55 @@
         </div>
     </div>
 
-    <!-- Cinta KPI Financiera -->
-    <div class="grid grid-cols-2 lg:grid-cols-5 gap-2 mb-4">
-        <div class="bg-white p-2 rounded-md border border-slate-200 shadow-sm flex flex-col justify-between">
-            <span class="text-[9px] font-bold text-slate-500 uppercase">Total Deuda Base</span>
-            <span class="font-mono font-black text-slate-900 text-sm tabular-nums">$ {{ number_format($totalValorBase, 2, ',', '.') }}</span>
+    <!-- Cinta KPI Financiera: Resumen Unificado de Deuda y Cuotas a Pagar -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 mb-4">
+        <!-- 1. Deuda Total -->
+        <div class="bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+            <span class="text-[9px] font-bold text-slate-500 uppercase">Deuda Total (Todo)</span>
+            <span class="font-mono font-black text-slate-900 text-base tabular-nums mt-0.5">
+                $ {{ number_format($resumenCuotas['deuda_total'] ?? $totalAPagar, 2, ',', '.') }}
+            </span>
+            <span class="text-[8.5px] text-slate-400">Todo lo que falta pagar</span>
         </div>
-        <div class="bg-white p-2 rounded-md border border-slate-200 shadow-sm flex flex-col justify-between">
-            <span class="text-[9px] font-bold text-slate-500 uppercase">Total Intereses</span>
-            <span class="font-mono font-black text-red-800 text-sm tabular-nums">$ {{ number_format($totalIntereses, 2, ',', '.') }}</span>
+
+        <!-- 2. Atrasado -->
+        <div class="bg-white p-2.5 rounded-xl border {{ ($resumenCuotas['atrasado'] ?? 0) > 0 ? 'border-rose-300 bg-rose-50/30' : 'border-slate-200' }} shadow-sm flex flex-col justify-between">
+            <span class="text-[9px] font-bold {{ ($resumenCuotas['atrasado'] ?? 0) > 0 ? 'text-rose-700' : 'text-slate-500' }} uppercase">Lo Atrasado</span>
+            <span class="font-mono font-black {{ ($resumenCuotas['atrasado'] ?? 0) > 0 ? 'text-rose-600' : 'text-slate-800' }} text-base tabular-nums mt-0.5">
+                $ {{ number_format($resumenCuotas['atrasado'] ?? 0, 2, ',', '.') }}
+            </span>
+            <span class="text-[8.5px] text-slate-400">Meses anteriores impagos</span>
         </div>
-        <div class="bg-white p-2 rounded-md border border-slate-200 shadow-sm flex flex-col justify-between">
-            <span class="text-[9px] font-bold text-slate-500 uppercase">Total Entregado</span>
-            <span class="font-mono font-black text-slate-900 text-sm tabular-nums">$ {{ number_format($totalEntregado, 2, ',', '.') }}</span>
+
+        <!-- 3. Este Mes -->
+        <div class="bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+            <span class="text-[9px] font-bold text-sky-800 uppercase">Este Mes</span>
+            <span class="font-mono font-black text-sky-700 text-base tabular-nums mt-0.5">
+                $ {{ number_format($resumenCuotas['este_mes'] ?? 0, 2, ',', '.') }}
+            </span>
+            <span class="text-[8.5px] text-slate-400">Cuota del mes actual</span>
         </div>
-        <div class="bg-emerald-50 p-2 rounded-md border border-emerald-200 shadow-sm flex flex-col justify-between">
-            <span class="text-[9px] font-bold text-emerald-800 uppercase">Total a Pagar</span>
-            <span class="font-mono font-black text-emerald-700 text-sm tabular-nums">$ {{ number_format($totalAPagar, 2, ',', '.') }}</span>
+
+        <!-- 4. Total a Pagar (Atrasado + Actual) -->
+        <div class="bg-amber-50 p-2.5 rounded-xl border-2 border-amber-400 shadow-sm flex flex-col justify-between">
+            <span class="text-[9px] font-black text-amber-900 uppercase">Total a Pagar</span>
+            <span class="font-mono font-black text-amber-700 text-base tabular-nums mt-0.5">
+                $ {{ number_format($resumenCuotas['total_a_pagar'] ?? 0, 2, ',', '.') }}
+            </span>
+            <span class="text-[8.5px] font-bold text-amber-800">Atrasado + Este Mes</span>
         </div>
-        <div class="bg-blue-900 p-2 rounded-md border border-blue-950 shadow-sm flex flex-col justify-between">
-            <span class="text-[9px] font-bold text-blue-200 uppercase">A Vencer</span>
-            <span class="font-mono font-black text-white text-sm tabular-nums">$ {{ number_format($totalRestante, 2, ',', '.') }}</span>
+
+        <!-- 5. Próximos 3 Meses -->
+        <div class="bg-slate-900 text-white p-2.5 rounded-xl border border-slate-800 shadow-sm flex flex-col justify-between col-span-2 sm:col-span-1">
+            <span class="text-[9px] font-bold text-slate-300 uppercase">Próximos 3 Meses</span>
+            <span class="font-mono font-black text-emerald-400 text-base tabular-nums mt-0.5">
+                $ {{ number_format($resumenCuotas['total_proximos_3_meses'] ?? 0, 2, ',', '.') }}
+            </span>
+            <span class="text-[8px] text-slate-400 font-mono">
+                1°: ${{ number_format($resumenCuotas['proximos_meses'][1]['total'] ?? 0, 0, ',', '.') }} | 
+                2°: ${{ number_format($resumenCuotas['proximos_meses'][2]['total'] ?? 0, 0, ',', '.') }} | 
+                3°: ${{ number_format($resumenCuotas['proximos_meses'][3]['total'] ?? 0, 0, ',', '.') }}
+            </span>
         </div>
     </div>
 
