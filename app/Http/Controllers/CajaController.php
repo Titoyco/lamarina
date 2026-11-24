@@ -76,8 +76,22 @@ class CajaController extends Controller
             $query->orderBy('cajas_sesiones.id', 'desc');
         }
 
-        // Totales agregados de la consulta filtrada (por medio de pago, ventas e ingresos/egresos)
-        $totalesFiltro = (clone $query)->selectRaw('
+        // Totales agregados de la consulta filtrada (MySQL ONLY_FULL_GROUP_BY compatible)
+        $totalesQuery = CajaSesion::query();
+        if ($sucursalFiltro !== 'all') {
+            $totalesQuery->where('id_sucursal', $sucursalId);
+        }
+        if ($request->filled('estado') && $request->estado !== 'all') {
+            $totalesQuery->where('estado', $request->estado);
+        }
+        if ($request->filled('fecha_desde')) {
+            $totalesQuery->whereDate('fecha_apertura', '>=', $request->fecha_desde);
+        }
+        if ($request->filled('fecha_hasta')) {
+            $totalesQuery->whereDate('fecha_apertura', '<=', $request->fecha_hasta);
+        }
+
+        $totalesFiltro = $totalesQuery->selectRaw('
             COALESCE(SUM(total_general), 0) as total_facturado,
             COALESCE(SUM(total_efectivo), 0) as total_efectivo,
             COALESCE(SUM(total_tarjeta_debito), 0) as total_debito,
