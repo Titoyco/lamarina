@@ -124,8 +124,8 @@
                         <div class="sm:col-span-3">
                             <label for="hasar_puerto" class="block text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase mb-0.5">Puerto TCP Hasar *</label>
                             <input id="hasar_puerto" name="hasar_puerto" type="number" min="1" max="65535"
-                                   value="{{ old('hasar_puerto', 2000) }}"
-                                   placeholder="2000"
+                                   value="{{ old('hasar_puerto', 20000) }}"
+                                   placeholder="20000"
                                    class="w-full text-xs font-mono font-bold rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:border-amber-500 focus:ring-amber-500 py-1.5 px-2.5 shadow-sm tabular-nums">
                             <x-input-error :messages="$errors->get('hasar_puerto')" class="mt-1"/>
                         </div>

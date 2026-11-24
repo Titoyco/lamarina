@@ -243,49 +243,90 @@ class CajaSesion extends Model implements Auditable
 
         if ($ventasActivas->isNotEmpty()) {
             foreach ($ventasActivas as $v) {
-                $monto = (float) $v->total;
-                $mp = $v->medio_pago;
-                $codigoMedio = $v->medioPago?->codigo ?? $mp;
-                $tipoBase = $v->medioPago?->tipo_base;
+                $pagosLista = $v->pagos ?? ($v->datos_fiscales['pagos'] ?? null);
+                // Si la venta tiene pagos múltiples o detallados en array JSON
+                if (!empty($pagosLista) && is_array($pagosLista) && count($pagosLista) > 0) {
+                    foreach ($pagosLista as $pago) {
+                        $pMonto = (float) ($pago['monto'] ?? 0);
+                        if ($pMonto <= 0) continue;
+                        $pMedio = $pago['medio_pago'] ?? 'efectivo';
+                        $pTipoBase = $pago['tipo_base'] ?? null;
+                        if (!$pTipoBase && isset($porMedio[$pMedio])) {
+                            $pTipoBase = $porMedio[$pMedio]['tipo_base'];
+                        }
 
-                if ($mp === 'efectivo' || $tipoBase === 'efectivo') {
-                    $totales['efectivo']['total'] += $monto;
-                    $totales['efectivo']['cant']++;
-                } elseif ($mp === 'tarjeta_debito' || $tipoBase === 'debito') {
-                    $totales['tarjeta_debito']['total'] += $monto;
-                    $totales['tarjeta_debito']['cant']++;
-                } elseif ($mp === 'tarjeta_credito' || $tipoBase === 'tarjeta_credito') {
-                    $totales['tarjeta_credito']['total'] += $monto;
-                    $totales['tarjeta_credito']['cant']++;
-                } elseif ($mp === 'credito_personal' || $tipoBase === 'credito') {
-                    $totales['credito_personal']['total'] += $monto;
-                    $totales['credito_personal']['cant']++;
-                } elseif ($mp === 'transferencia' || $tipoBase === 'transferencia') {
-                    $totales['transferencia']['total'] += $monto;
-                    $totales['transferencia']['cant']++;
+                        if ($pMedio === 'efectivo' || $pTipoBase === 'efectivo') {
+                            $totales['efectivo']['total'] += $pMonto;
+                            $totales['efectivo']['cant']++;
+                        } elseif ($pMedio === 'tarjeta_debito' || $pTipoBase === 'debito') {
+                            $totales['tarjeta_debito']['total'] += $pMonto;
+                            $totales['tarjeta_debito']['cant']++;
+                        } elseif ($pMedio === 'tarjeta_credito' || $pTipoBase === 'tarjeta_credito') {
+                            $totales['tarjeta_credito']['total'] += $pMonto;
+                            $totales['tarjeta_credito']['cant']++;
+                        } elseif ($pMedio === 'credito_personal' || $pTipoBase === 'credito') {
+                            $totales['credito_personal']['total'] += $pMonto;
+                            $totales['credito_personal']['cant']++;
+                        } elseif ($pMedio === 'transferencia' || $pTipoBase === 'transferencia') {
+                            $totales['transferencia']['total'] += $pMonto;
+                            $totales['transferencia']['cant']++;
+                        } else {
+                            $totales['otros']['total'] += $pMonto;
+                            $totales['otros']['cant']++;
+                        }
+
+                        if (isset($porMedio[$pMedio])) {
+                            $porMedio[$pMedio]['total'] += $pMonto;
+                            $porMedio[$pMedio]['cant']++;
+                        }
+                    }
+                    $totales['general']['total'] += (float) $v->total;
+                    $totales['general']['cant']++;
                 } else {
-                    $totales['otros']['total'] += $monto;
-                    $totales['otros']['cant']++;
-                }
+                    $monto = (float) $v->total;
+                    $mp = $v->medio_pago;
+                    $codigoMedio = $v->medioPago?->codigo ?? $mp;
+                    $tipoBase = $v->medioPago?->tipo_base;
 
-                // Desglose por medio dinámico
-                if (!isset($porMedio[$codigoMedio])) {
-                    $porMedio[$codigoMedio] = [
-                        'id'        => $v->id_medio_pago,
-                        'codigo'    => $codigoMedio,
-                        'nombre'    => $v->medioPago?->nombre ?? ucwords(str_replace('_', ' ', $codigoMedio)),
-                        'icono'     => $v->medioPago?->icono ?: '💳',
-                        'color'     => $v->medioPago?->color ?: 'slate',
-                        'tipo_base' => $tipoBase ?? 'otros',
-                        'total'     => 0.0,
-                        'cant'      => 0,
-                    ];
-                }
-                $porMedio[$codigoMedio]['total'] += $monto;
-                $porMedio[$codigoMedio]['cant']++;
+                    if ($mp === 'efectivo' || $tipoBase === 'efectivo') {
+                        $totales['efectivo']['total'] += $monto;
+                        $totales['efectivo']['cant']++;
+                    } elseif ($mp === 'tarjeta_debito' || $tipoBase === 'debito') {
+                        $totales['tarjeta_debito']['total'] += $monto;
+                        $totales['tarjeta_debito']['cant']++;
+                    } elseif ($mp === 'tarjeta_credito' || $tipoBase === 'tarjeta_credito') {
+                        $totales['tarjeta_credito']['total'] += $monto;
+                        $totales['tarjeta_credito']['cant']++;
+                    } elseif ($mp === 'credito_personal' || $tipoBase === 'credito') {
+                        $totales['credito_personal']['total'] += $monto;
+                        $totales['credito_personal']['cant']++;
+                    } elseif ($mp === 'transferencia' || $tipoBase === 'transferencia') {
+                        $totales['transferencia']['total'] += $monto;
+                        $totales['transferencia']['cant']++;
+                    } else {
+                        $totales['otros']['total'] += $monto;
+                        $totales['otros']['cant']++;
+                    }
 
-                $totales['general']['total'] += $monto;
-                $totales['general']['cant']++;
+                    // Desglose por medio dinámico
+                    if (!isset($porMedio[$codigoMedio])) {
+                        $porMedio[$codigoMedio] = [
+                            'id'        => $v->id_medio_pago,
+                            'codigo'    => $codigoMedio,
+                            'nombre'    => $v->medioPago?->nombre ?? ucwords(str_replace('_', ' ', $codigoMedio)),
+                            'icono'     => $v->medioPago?->icono ?: '💳',
+                            'color'     => $v->medioPago?->color ?: 'slate',
+                            'tipo_base' => $tipoBase ?? 'otros',
+                            'total'     => 0.0,
+                            'cant'      => 0,
+                        ];
+                    }
+                    $porMedio[$codigoMedio]['total'] += $monto;
+                    $porMedio[$codigoMedio]['cant']++;
+
+                    $totales['general']['total'] += $monto;
+                    $totales['general']['cant']++;
+                }
             }
         } elseif ((float) $this->total_general > 0 || (float) $this->total_efectivo > 0) {
             // Caso de cajas cerradas o históricas donde los totales ya fueron consolidados en los campos de la sesión
@@ -408,7 +449,7 @@ class CajaSesion extends Model implements Auditable
         foreach ($pvsHasarSucursal as $pv) {
             $config = $pv->configuracion ?? [];
             $ip = $config['hasar_ip'] ?? '127.0.0.1';
-            $puerto = (int) ($config['hasar_puerto'] ?? 2000);
+            $puerto = (int) (($config['hasar_puerto'] ?? 20000) == 2000 ? 20000 : ($config['hasar_puerto'] ?? 20000));
             $puertoLocal = (int) ($config['puerto_local'] ?? 8585);
             $modelo = $config['modelo'] ?? 'SMH/PT-250F';
             $key = "{$ip}:{$puerto}";
@@ -468,7 +509,7 @@ class CajaSesion extends Model implements Auditable
                 // Resolver a qué IP pertenece el punto de venta
                 $config = $pv?->configuracion ?? $v->datos_fiscales ?? [];
                 $ip = $config['hasar_ip'] ?? '127.0.0.1';
-                $puerto = (int) ($config['hasar_puerto'] ?? 2000);
+                $puerto = (int) (($config['hasar_puerto'] ?? 20000) == 2000 ? 20000 : ($config['hasar_puerto'] ?? 20000));
                 $key = "{$ip}:{$puerto}";
 
                 if (!isset($controladoresHasar[$key])) {

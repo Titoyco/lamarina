@@ -12,6 +12,7 @@ use App\Http\Controllers\PresentacionController;
 use App\Http\Controllers\AuditoriaController;
 use App\Http\Controllers\BackupController;
 use App\Http\Controllers\PuntoVentaController;
+use App\Http\Controllers\FacturacionController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 
 /*
@@ -28,6 +29,11 @@ Route::get('/', function () {
 // ⚠️ Protegido con 'auth': depende de la sesión del usuario (sucursal activa + permiso 'cambiar-sucursal').
 Route::post('/cambiar-sucursal', [SucursalController::class, 'updateGlobal'])
     ->name('sucursal.update.global')
+    ->middleware('auth');
+
+// Alias de retrocompatibilidad para vistas y componentes heredados
+Route::match(['get', 'post'], '/cambiar-sucursal-alias', [SucursalController::class, 'updateGlobal'])
+    ->name('cambiar.sucursal')
     ->middleware('auth');
 
 Route::middleware('auth')->group(function () {
@@ -207,7 +213,13 @@ Route::middleware('auth')->group(function () {
     Route::post('/ventas/clientes/{cliente}/comentarios', [\App\Http\Controllers\VentaController::class, 'agregarComentarioCliente'])->name('ventas.cliente-agregar-comentario');
     Route::get('/ventas/{venta}', [\App\Http\Controllers\VentaController::class, 'show'])->name('ventas.show');
     Route::get('/ventas/{venta}/imprimir', [\App\Http\Controllers\VentaController::class, 'imprimir'])->name('ventas.imprimir');
+    Route::get('/ventas/{venta}/hasar-payload', [\App\Http\Controllers\VentaController::class, 'hasarPayload'])->name('ventas.hasar-payload');
     Route::post('/ventas/{venta}/anular', [\App\Http\Controllers\VentaController::class, 'anular'])->name('ventas.anular');
+    Route::post('/ventas/{venta}/facturar-remito', [\App\Http\Controllers\VentaController::class, 'facturarRemito'])->name('ventas.facturar-remito');
+
+    // --- FACTURACIÓN ELECTRÓNICA DIGITAL ARCA (WSAA + WSFEv1) ---
+    Route::post('/facturacion/emitir-digital', [FacturacionController::class, 'emitirDigital'])->name('facturacion.emitir-digital');
+    Route::post('/facturacion/consultar-ultimo', [FacturacionController::class, 'consultarUltimo'])->name('facturacion.consultar-ultimo');
 
     // --- MÓDULO RECIBOS DE COBRANZA / CUENTA CORRIENTE ---
     Route::get('/recibos', [\App\Http\Controllers\ReciboController::class, 'index'])->name('recibos.index');
@@ -218,6 +230,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/recibos/{recibo}/anular', [\App\Http\Controllers\ReciboController::class, 'anular'])->name('recibos.anular');
 
     // --- MÓDULO CONTROL DE CAJA / TURNOS & CIERRE Z ---
+    Route::redirect('/caja', '/cajas');
     Route::prefix('cajas')->group(function () {
         Route::get('/', [\App\Http\Controllers\CajaController::class, 'index'])->name('cajas.index');
         Route::get('/estado-actual', [\App\Http\Controllers\CajaController::class, 'estadoActual'])->name('cajas.estado-actual');

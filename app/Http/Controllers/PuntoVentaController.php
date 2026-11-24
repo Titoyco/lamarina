@@ -276,7 +276,7 @@ class PuntoVentaController extends Controller
             'sucursal'           => $puntoVenta->sucursal ? $puntoVenta->sucursal->nombre : 'Sin Sucursal',
             'puerto_local'       => (int) ($puntoVenta->configuracion['puerto_local'] ?? 8585),
             'hasar_ip'           => $puntoVenta->configuracion['hasar_ip'] ?? '',
-            'hasar_puerto'       => (int) ($puntoVenta->configuracion['hasar_puerto'] ?? 2000),
+            'hasar_puerto'       => (int) (($puntoVenta->configuracion['hasar_puerto'] ?? 20000) == 2000 ? 20000 : ($puntoVenta->configuracion['hasar_puerto'] ?? 20000)),
             'modelo'             => $puntoVenta->configuracion['modelo'] ?? 'SMH/PT-250F',
         ];
 

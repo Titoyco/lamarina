@@ -42,22 +42,28 @@
             console.log('2. [PAYLOAD ENVIADO]:', payloadZ);
 
             let dataBridge = null;
-            const hostsATestear = ['127.0.0.1', 'localhost'];
-            for (let h of hostsATestear) {
+            const endpointsATestear = [
+                `http://127.0.0.1:${puertoLocal}/imprimir`,
+                `https://127.0.0.1:8586/imprimir`,
+                `http://127.0.0.1:${puertoLocal}/cierre-z`,
+                `https://127.0.0.1:8586/cierre-z`,
+                `http://localhost:${puertoLocal}/imprimir`
+            ];
+            for (let url of endpointsATestear) {
                 try {
-                    console.log(`3. [INTENTO FETCH PUENTE]: http://${h}:${puertoLocal}/imprimir`);
-                    let resBridge = await fetch(`http://${h}:${puertoLocal}/imprimir`, {
+                    console.log(`3. [INTENTO FETCH PUENTE]: ${url}`);
+                    let resBridge = await fetch(url, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json; charset=utf-8' },
                         body: JSON.stringify(payloadZ)
                     });
                     if (resBridge && resBridge.ok) {
                         dataBridge = await resBridge.json();
-                        console.log(`✓ [PUENTE RESPONDIÓ EN ${h}:${puertoLocal}]:`, dataBridge);
+                        console.log(`✓ [PUENTE RESPONDIÓ EN ${url}]:`, dataBridge);
                         break;
                     }
                 } catch (err) {
-                    console.warn(`Fetch a http://${h}:${puertoLocal}/imprimir no disponible:`, err.message);
+                    console.warn(`Fetch a ${url} no disponible:`, err.message);
                 }
             }
 
@@ -177,7 +183,7 @@
                     alert(`✓ Cierre Z #${nroZ} registrado manualmente.`);
                 } else {
                     if (errP) {
-                        errP.textContent = 'No se pudo contactar el controlador fiscal. Verifique que el simulador/puente Hasar esté activo en localhost:' + puertoLocal;
+                        errP.textContent = 'No se pudo contactar el controlador fiscal. Verifique que el puente Hasar esté activo en localhost:' + puertoLocal;
                         errP.classList.remove('hidden');
                     }
                     if (btn) btn.disabled = false;
@@ -186,18 +192,141 @@
             }
         };
 
+        window.consultarEstadoFiscal = async function(hasarIp, puertoLocal, ctrlId) {
+            const endpoints = [
+                `http://127.0.0.1:${puertoLocal}/test`,
+                `https://127.0.0.1:8586/test`,
+                `http://127.0.0.1:8585/test`
+            ];
+            let data = null;
+            for (let u of endpoints) {
+                try {
+                    let r = await fetch(u, { method: 'GET', headers: { 'Accept': 'application/json' } });
+                    if (r.ok) {
+                        data = await r.json();
+                        break;
+                    }
+                } catch(e) {}
+            }
+            if (!data || !data.exito) {
+                alert('⚠️ No se pudo comunicar con el puente fiscal en localhost:' + puertoLocal + '.\nVerifique que "puente-hasar" esté ejecutándose.');
+                return;
+            }
+
+            let xml = (data.respuestas_fiscal && data.respuestas_fiscal[0]) || '';
+            let matchEstado = xml.match(/<EstadoInterno>(.*?)<\/EstadoInterno>/);
+            let matchUltimo = xml.match(/<NumeroUltimoComprobante>(.*?)<\/NumeroUltimoComprobante>/);
+            let matchEmitidos = xml.match(/<CantidadEmitidos>(.*?)<\/CantidadEmitidos>/);
+            let matchCancelados = xml.match(/<CantidadCancelados>(.*?)<\/CantidadCancelados>/);
+
+            let estado = matchEstado ? matchEstado[1] : 'Desconocido';
+            let ultimo = matchUltimo ? matchUltimo[1] : '-';
+            let emitidos = matchEmitidos ? matchEmitidos[1] : '0';
+            let cancelados = matchCancelados ? matchCancelados[1] : '0';
+
+            let msg = `🟢 [ESTADO OFICIAL DE LA REGISTRADORA HASAR 2G]\n\n`;
+            msg += `• IP Fiscal: ${hasarIp}\n`;
+            msg += `• Punto de Venta: #${data.punto_venta || 7}\n`;
+            msg += `• Estado Interno: ${estado}\n`;
+            msg += `• Último Comprobante emitido: #${ultimo}\n`;
+            msg += `• Comprobantes emitidos en la jornada: ${emitidos}\n`;
+            if (cancelados > 0) msg += `• Cancelados: ${cancelados}\n`;
+            msg += `\n`;
+
+            if (estado === 'EnJornadaFiscal') {
+                msg += `✅ LA REGISTRADORA ESTÁ EN JORNADA FISCAL ABIERTA.\nEstá operativa y lista para facturar hoy normalmente.`;
+            } else {
+                msg += `ℹ️ Estado: ${estado}.\nSi ya se realizó el Cierre Z hoy, la registradora iniciará la nueva jornada automáticamente al emitir la primera factura.`;
+            }
+
+            alert(msg);
+        };
+
+        window.marcarZYaEmitido = async function(key, hasarIp, hasarPuerto, puertoLocal, modelo, ctrlId) {
+            let nroZ = prompt(
+                'Indique el Número de Cierre Z realizado previamente en la registradora (o deje "PREVIO" si no tiene el número a mano):',
+                'PREVIO'
+            );
+            if (nroZ === null) return; // Canceló
+            nroZ = nroZ.trim() || 'PREVIO';
+
+            try {
+                await fetch('{{ route("cajas.cierre-z-hasar", $caja->id) }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({
+                        hasar_ip: hasarIp,
+                        hasar_puerto: hasarPuerto,
+                        puerto_local: puertoLocal,
+                        modelo: modelo,
+                        numero_z: nroZ,
+                        respuesta: { previo_sistema_anterior: true, manual: true }
+                    })
+                });
+            } catch (err) {
+                console.warn('Registro Z previo:', err);
+            }
+
+            const badge = document.getElementById(ctrlId + '_badge');
+            const icon = document.getElementById(ctrlId + '_icon');
+            const card = document.getElementById(ctrlId);
+            const btn = document.getElementById(ctrlId + '_btn');
+            const btnText = document.getElementById(ctrlId + '_btn_text');
+
+            if (badge) {
+                badge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-900 dark:bg-emerald-900 dark:text-emerald-200 flex items-center gap-1';
+                badge.textContent = `✓ Z Ya Emitido (#${nroZ})`;
+            }
+            if (icon) {
+                icon.className = 'w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg shrink-0 shadow-sm bg-emerald-600 text-white';
+            }
+            if (card) {
+                card.className = 'p-3.5 rounded-xl border transition-all bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800';
+            }
+            if (btnText) {
+                btnText.textContent = '🔄 Re-emitir Cierre Z';
+            }
+
+            const banner = document.getElementById('banner-alerta-z');
+            if (banner) banner.classList.add('hidden');
+
+            let idx = window.controladoresHasarEstado.findIndex(c => c.key === key);
+            if (idx !== -1) {
+                window.controladoresHasarEstado[idx].cierre_z_emitido = true;
+                window.controladoresHasarEstado[idx].cierre_z_numero = nroZ;
+                window.controladoresHasarEstado[idx].cierre_z_fecha = new Date().toLocaleTimeString('es-AR');
+            }
+            actualizarInputResumenFiscal();
+            alert(`✓ Cierre Z registrado como emitido previamente.\n\nYa puede confirmar el cierre de caja del sistema sin re-imprimir.`);
+        };
+
         window.validarCierreForm = function(e) {
             console.log('⚡ [FORM SUBMIT] validarCierreForm invocado');
             let pend = (window.controladoresHasarEstado || []).filter(c => Number(c.cant_tickets || 0) > 0 && !c.cierre_z_emitido);
             if (pend.length > 0) {
                 let nombres = pend.map(c => `• ${c.modelo} (${c.hasar_ip}:${c.hasar_puerto}) - ${c.cant_tickets} ticket(s)`).join('\n');
-                let avanzar = confirm(`Controladores pendientes de Cierre Z:\n${nombres}\n\n¿Desea que el sistema intente emitir el Cierre Z automáticamente ahora y asentar el cierre de caja?`);
-                if (!avanzar) {
+                let respuesta = confirm(
+                    `Controladores con Cierre Z no registrado en esta sesión:\n${nombres}\n\n` +
+                    `¿El Cierre Z ya fue emitido previamente (ej: desde el sistema anterior o por teclado)?\n\n` +
+                    `• ACEPTAR: Confirmar cierre de caja considerando el Z como YA REALIZADO (sin mandar a imprimir).\n` +
+                    `• CANCELAR: Volver a la pantalla para emitir el Z en la impresora física.`
+                );
+                if (respuesta) {
+                    for (let c of pend) {
+                        c.cierre_z_emitido = true;
+                        c.cierre_z_numero = c.cierre_z_numero || 'PREVIO';
+                    }
+                    actualizarInputResumenFiscal();
+                    return true;
+                } else {
                     if (e) e.preventDefault();
                     return false;
                 }
             } else {
-                if (!confirm('¿Está seguro de cerrar definitivamente la caja? Se asentará el Cierre Z oficial y el arqueo de efectivo.')) {
+                if (!confirm('¿Está seguro de cerrar definitivamente la caja? Se asentará el cierre de turno y el arqueo de efectivo.')) {
                     if (e) e.preventDefault();
                     return false;
                 }
@@ -436,9 +565,9 @@
                     <div id="banner-alerta-z" class="p-3 bg-amber-50 dark:bg-amber-950/60 border-2 border-amber-400 dark:border-amber-700 rounded-xl text-xs text-amber-950 dark:text-amber-200 flex items-start gap-2.5 shadow-xs {{ $hasPendientesZ ? '' : 'hidden' }}">
                         <span class="text-base shrink-0">⚠️</span>
                         <div>
-                            <strong class="font-black uppercase tracking-wider block">Emisión Obligatoria de Cierre Z</strong>
+                            <strong class="font-black uppercase tracking-wider block">Emisión de Cierre Z</strong>
                             <span class="text-[11px] leading-tight block mt-0.5">
-                                Existen controladores fiscales con tickets emitidos que aún no poseen Cierre Z. <strong>Debe presionar "⚡ Emitir Cierre Z" en cada equipo</strong> (o asentar su N° manual si la impresora física no responde al puente) antes de poder cerrar la caja.
+                                Existen controladores fiscales con tickets emitidos. Puede presionar <strong>"⚡ Emitir Cierre Z"</strong> para imprimirlo en la registradora física, o si <u>ya fue emitido previamente</u> (desde el sistema anterior o registradora), presione <strong>"✓ Z Ya Realizado (Omitir)"</strong> para cerrar solo la caja del sistema sin re-imprimir.
                             </span>
                         </div>
                     </div>
@@ -480,7 +609,23 @@
                                         </div>
                                     </div>
 
-                                    <div class="flex items-center gap-2 self-end sm:self-center shrink-0">
+                                    <div class="flex flex-wrap items-center gap-2 self-end sm:self-center shrink-0">
+                                        <button type="button" 
+                                                onclick="consultarEstadoFiscal('{{ $ctrl['hasar_ip'] }}', {{ $ctrl['puerto_local'] }}, '{{ $ctrlId }}')"
+                                                class="px-2.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer shadow-2xs"
+                                                title="Consultar si la registradora está en jornada abierta y puede facturar hoy">
+                                            <span>🔍 Ver Estado Registradora</span>
+                                        </button>
+
+                                        @if(!$zEmitido)
+                                        <button type="button" 
+                                                onclick="marcarZYaEmitido('{{ $ctrl['key'] }}', '{{ $ctrl['hasar_ip'] }}', {{ $ctrl['hasar_puerto'] }}, {{ $ctrl['puerto_local'] }}, '{{ $ctrl['modelo'] }}', '{{ $ctrlId }}')"
+                                                class="px-2.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-emerald-400 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 cursor-pointer shadow-2xs"
+                                                title="Marcar como ya emitido en el sistema anterior sin mandar a imprimir">
+                                            <span>✓ Z Ya Realizado (Omitir)</span>
+                                        </button>
+                                        @endif
+
                                         <button type="button" 
                                                 id="{{ $ctrlId }}_btn"
                                                 onclick="ejecutarCierreZ('{{ $ctrl['key'] }}', '{{ $ctrl['hasar_ip'] }}', {{ $ctrl['hasar_puerto'] }}, {{ $ctrl['puerto_local'] }}, '{{ $ctrl['modelo'] }}', '{{ $ctrlId }}')"

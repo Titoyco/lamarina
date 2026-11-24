@@ -626,14 +626,25 @@ Todas las transacciones de ingresos, ventas, cobranzas y cuotas se vinculan a la
 
 ## 13. Atributos Fiscales y Tratamiento Impositivo en Modelo `Venta`
 - **`id_punto_venta`**: FK a `puntos_venta.id` (nullable, `onDelete('set null')`).
-- **`tipo_emision`**: `enum('fiscal_hasar', 'arca_wsfe')`.
-- **`tipo_comprobante`**: `varchar(20)` (`FACTURA_B`, `FACTURA_A`, `NOTA_CREDITO_B`, `NOTA_CREDITO_A`).
+- **`tipo_emision`**: `enum('fiscal_hasar', 'arca_wsfe')` nullable (nulo en remitos y presupuestos que no se fiscalizan).
+- **`tipo_comprobante`**: `varchar(30)` (`FACTURA_B`, `FACTURA_A`, `FACTURA_C`, `REMITO`, `PRESUPUESTO`, `NOTA_CREDITO`, `NOTA_CREDITO_B`, `NOTA_CREDITO_A`).
+- **`estado`**: `varchar(20)` (`completada`, `anulada`, `remito`, `presupuesto`).
 - **`cae`**: Código de Autorización Electrónica otorgado por ARCA (14 dígitos).
 - **`cae_vencimiento`**: Fecha de vencimiento del CAE.
 - **`afip_qr`**: Cadena URL oficial con parámetro Base64 según RG 5003 (`https://www.afip.gob.ar/fe/qr/?p=...`).
 - **`datos_fiscales`**: Campo JSON con metadatos de respuesta fiscal (detalle de CAE, observaciones o comprobantes asociados en notas de crédito).
 
-### 13.1 Tratamiento Impositivo por Jurisdicción
+### 13.1 Tipos de Comprobantes y Lógica de Negocio
+| Comprobante | Descuenta Stock | Fiscaliza ARCA/Hasar | Estado Inicial | Comportamiento |
+|---|:---:|:---:|---|---|
+| **Factura B** (`FACTURA_B`) | ✅ Sí | ✅ Sí (Cód. 06) | `completada` | Predeterminado en el mostrador. Consumidor Final. |
+| **Factura A** (`FACTURA_A`) | ✅ Sí | ✅ Sí (Cód. 01) | `completada` | Responsable Inscripto. Exige CUIT de 11 dígitos y discrimina IVA 21%. |
+| **Factura C** (`FACTURA_C`) | ✅ Sí | ✅ Sí (Cód. 11) | `completada` | Monotributo / Régimen Simplificado. |
+| **Remito** (`REMITO`) | ✅ Sí | ❌ No fiscal | `remito` | Descuenta inventario físico (`tipo='remito'`). Se factura posteriormente mediante `ventas.facturar-remito` sin duplicar descuento de stock. |
+| **Presupuesto** (`PRESUPUESTO`) | ❌ No | ❌ No fiscal | `presupuesto` | Cotización. No afecta stock ni valida disponibilidad. Puede cargarse al facturador (`ventas.create?presupuesto_id=...`). |
+| **Nota de Crédito** (`NOTA_CREDITO_B/A`) | 🔄 Reingresa (+) | ✅ Sí (Cód. 08/03) | `completada` | Incrementa stock (`tipo='devolucion'`). Impacta fiscalmente si el punto de venta lo requiere. |
+
+### 13.2 Tratamiento Impositivo por Jurisdicción
 - **Ushuaia (Tierra del Fuego - Ley 19.640)**:
   - Operaciones en el **Área Aduanera Especial** exentas de IVA y Ganancias.
   - En Web Services ARCA (WSFE): se informa `ImpOpEx = $total`, `ImpNeto = 0.00`, `ImpIVA = 0.00`, y no se envía nodo `AlicIva` (cumpliendo con la restricción técnica de AFIP para comprobantes exentos).
@@ -643,9 +654,17 @@ Todas las transacciones de ingresos, ventas, cobranzas y cuotas se vinculan a la
   - **Factura B (Cód. 06)**: Consumidor Final / Monotributo. El precio incluye IVA. En WSFE se informa base neta e IVA 21%.
   - **Factura A (Cód. 01)**: Receptor Responsable Inscripto. Exige CUIT de 11 dígitos válido (DocTipo 80). Discrimina explícitamente Subtotal Neto Gravado (`$total / 1.21`) e IVA Liquidado 21%.
 
-### 13.2 Métodos Helpers en `Venta`
+### 13.3 Métodos Helpers y Accesores en `Venta`
 - **`isFacturaA()`**: Determina si el comprobante emitido es Factura A (`tipo_comprobante === 'FACTURA_A'`).
 - **`isFacturaB()`**: Determina si el comprobante emitido es Factura B (`tipo_comprobante === 'FACTURA_B' || null`).
+- **`isFacturaC()`**: Determina si el comprobante emitido es Factura C (`tipo_comprobante === 'FACTURA_C'`).
+- **`isFactura()`**: Retorna verdadero si es Factura A, B o C (excluyendo remitos, presupuestos y notas de crédito).
+- **`isRemito()`**: Determina si es Remito de entrega (`tipo_comprobante === 'REMITO' || estado === 'remito'`).
+- **`isPresupuesto()`**: Determina si es Presupuesto (`tipo_comprobante === 'PRESUPUESTO' || estado === 'presupuesto'`).
+- **`isNotaCredito()`**: Determina si es Nota de Crédito (`NOTA_CREDITO`, `NOTA_CREDITO_B`, `NOTA_CREDITO_A`).
+- **`isFiscal()`**: Retorna verdadero si es un comprobante con validez fiscal (Facturas y Notas de Crédito; falso para Remitos y Presupuestos).
+- **`getLetraComprobanteAttribute()`**: Retorna la letra del comprobante (`A`, `B`, `C`, `R` para remitos, `P` para presupuestos).
+- **`getTipoComprobanteNombreAttribute()`**: Retorna el nombre formateado y legible del documento (`Factura B`, `Factura A`, `Remito de Entrega`, `Presupuesto`, etc.).
 - **`esExentoIva()`**: Retorna verdadero si la sucursal emisora pertenece a Tierra del Fuego (`$this->sucursal?->isTdf()`).
 - **`netoGravado()`**: Retorna el importe neto gravado ($0.00$ si es exento por Ley 19.640, o `$total / 1.21$` si está gravado en Chubut).
 - **`ivaLiquidado()`**: Retorna el IVA liquidado al 21% ($0.00$ si es exento por Ley 19.640, o `$total - netoGravado()`$ en Chubut).

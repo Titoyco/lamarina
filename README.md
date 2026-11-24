@@ -1,66 +1,141 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Tiendas La Marina — Sistema de Gestión Comercial, Facturación y Créditos
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Sistema integral desarrollado en **Laravel**, **Blade**, **Tailwind CSS v3** y **Alpine.js** para la administración comercial, facturación en punto de venta (POS), control de stock multiesucursal, gestión de créditos personales y control estricto de cajas y cierres Z.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 🏢 Sucursales y Jurisdicciones Fiscales
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+El sistema gestiona de forma diferenciada la facturación y los datos fiscales según la sucursal activa:
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+1. **Sucursal Chubut (Trelew - Centro):**
+   - **Nombre de Fantasía:** La Marina
+   - **Razón Social:** Tiendas la Marina SAS
+   - **CUIT:** 30-71699602-2
+   - **Domicilio Comercial:** Rivadavia 249, Trelew, Chubut
+   - **Página Web:** [www.tiendaslamarina.com.ar](https://www.tiendaslamarina.com.ar)
 
-## Learning Laravel
+2. **Sucursal Tierra del Fuego (Ushuaia):**
+   - **Nombre de Fantasía:** La Marina
+   - **Razón Social:** BARZINI GUILLERMO ENRIQUE
+   - **CUIT:** 20-11474524-4
+   - **Domicilio Comercial:** San Martín 1255, Ushuaia, Tierra del Fuego
+   - **Página Web:** [www.tiendaslamarina.com.ar](https://www.tiendaslamarina.com.ar)
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+---
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+## 📖 Manual de Usuario Operativo
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+Para la capacitación del personal de caja, administración y mostrador, consulte el documento integral:
+- 📘 [**MANUAL_DE_USUARIO.md**](MANUAL_DE_USUARIO.md): Manual operativo dividido en 11 capítulos según los módulos del menú principal, con guías paso a paso para cada tarea operativa (facturar, anular, cambiar comprobante, facturar remitos, arqueo de caja, legajos, cobro de cuotas, etiquetas de código de barras, métricas y configuración de ARCA).
 
-## Laravel Sponsors
+---
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## 🚀 Módulos Principales del Sistema
 
-### Premium Partners
+### 1. Punto de Venta (POS) & Facturación
+- Emisión ágil de comprobantes (Factura B, Ticket, etc.) con selección de medios de pago:
+  - Efectivo
+  - Tarjeta de Débito
+  - Tarjeta de Crédito
+  - Crédito Personal / Cuenta Corriente
+  - Transferencia Bancaria / QR
+  - Otros
+- **Integración con Caja:** Obliga a que la caja de la sucursal esté abierta en el día. Si no está abierta o quedó una sesión de jornada anterior pendiente, bloquea la venta preventivamente.
+- **Prevención de Stock Negativo:** Bloquea ventas de artículos con stock en cero y ofrece ventana de recuento rápido físico en mostrador para regularizar el inventario sin interrumpir la operación.
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+### 2. Control de Cajas, Turnos y Cierres Z
+- **Apertura de Jornada:** Ingreso obligatorio del fondo inicial en efectivo antes de operar.
+- **Movimientos Manuales Justificados:**
+  - **Retiros / Egresos:** Para pago de fletes, insumos o adelantos con motivo obligatorio y comprobante opcional.
+  - **Ingresos Extras:** Para sencillo adicional o cobros directos con motivo obligatorio.
+- **Arqueo y Cierre Z:**
+  - Cálculo automático:
+    $$\text{Efectivo Teórico} = \text{Fondo Inicial} + \text{Ventas Efectivo} + \text{Ingresos} - \text{Retiros}$$
+  - Ingreso de dinero contado y determinación en tiempo real del **Fallo de Caja** (sobrante o faltante).
+- **Comprobantes Imprimibles:** Emisión de Cierre Z en formato **Ticket Térmico de 80mm** y hoja **A4**.
+- **Histórico por Medios de Pago:** Reporte consolidado por rango de fechas y sucursal.
 
-## Contributing
+### 3. Créditos Personales & Cuentas Corrientes
+- Registro y evaluación crediticia de clientes (titulares y autorizados).
+- Control de límites disponibles, cálculo de cuotas e intereses de financiación.
+- Cobranza de cuotas con recibos oficiales, compensación de saldos y auto-cancelación.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### 4. Control de Inventario y Stock Multiesucursal
+- Catálogo de productos, códigos de barra, categorías y subcategorías.
+- Control de stock por sucursal con traslados inter-sucursales, remitos de proveedor y ajustes por recuento.
 
-## Code of Conduct
+### 5. Copias de Seguridad (Backup y Restauración)
+- Generación de respaldos íntegros de la base de datos descargables en `.zip`.
+- **Restauración Protegida:** Requiere permisos de administrador o `superuser` y ejecuta automáticamente un auto-backup preventivo antes de sobrescribir cualquier tabla.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### 6. Seguridad y Despliegue
+- **Login Seguro:** Acceso restringido por usuario y contraseña encriptada (Bcrypt) sin listas desplegables expuestas.
+- **Superusuario Secreto:** Usuario de rescate `superuser` invisible en listados administrativos.
+- **Forzado de HTTPS:** Regla en `AppServiceProvider` para entorno de producción en `https://app.tiendaslamarina.com.ar`.
 
-## Security Vulnerabilities
+---
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## 🛠️ Especificaciones Técnicas
 
-## License
+La documentación técnica detallada se encuentra en la carpeta [`specs/`](specs/):
+- [`specs/models.md`](specs/models.md): Modelos Eloquent, esquemas de base de datos, relaciones y reglas de integridad.
+- [`specs/routes-and-controllers.md`](specs/routes-and-controllers.md): Tabla completa de rutas, controladores, validaciones y lógica de negocio.
+- [`specs/ui-guidelines.md`](specs/ui-guidelines.md): Lineamientos visuales, componentes Blade, diseño responsivo, Alpine.js y formatos de impresión.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+---
+
+## 💻 Despliegue en Servidor de Producción
+
+### Datos de Conexión del Servidor
+- **Acceso SSH / SCP:** `root@app.tiendaslamarina.com.ar` (Host VPS interno: `vps-4866941-x`)
+- **Ruta de la Aplicación:** `/var/www/html/app`
+- **Dominio de Producción:** [https://app.tiendaslamarina.com.ar](https://app.tiendaslamarina.com.ar)
+
+---
+
+### Procedimiento de Despliegue y Sincronización
+
+1. **En la máquina de desarrollo (Local):**
+   ```bash
+   git add .
+   git commit -m "feat: descripción de los cambios"
+   git push origin main
+   ```
+
+2. **En el servidor de producción (`root@app.tiendaslamarina.com.ar`):**
+   ```bash
+   # Conexión SSH
+   ssh root@app.tiendaslamarina.com.ar
+
+   # Ingresar al directorio de la aplicación
+   cd /var/www/html/app
+
+   # Actualizar código y optimizaciones
+   git pull origin main
+   composer install --no-dev --optimize-autoloader
+   php artisan migrate --force
+   php artisan optimize:clear
+   php artisan config:cache
+   php artisan route:cache
+   php artisan view:cache
+   ```
+
+3. **Generación, Subida y Restauración de Base de Datos:**
+   ```powershell
+   # Desde local (PowerShell) generar el dump en UTF-8 puro (usando --result-file para evitar UTF-16LE):
+   & "C:\wamp64\bin\mysql\mysql8.3.0\bin\mysqldump.exe" -u root -h 127.0.0.1 --default-character-set=utf8mb4 --single-transaction --quick --routines --triggers --result-file="c:\wamp64\www\laravel\creditos\database\backups\lamarina_v4_prod.sql" lamarina_v4
+
+   # Comprimir a ZIP
+   Compress-Archive -Path "c:\wamp64\www\laravel\creditos\database\backups\lamarina_v4_prod.sql" -DestinationPath "c:\wamp64\www\laravel\creditos\database\backups\lamarina_v4_prod.zip" -Force
+
+   # Subir por SCP al servidor
+   scp c:\wamp64\www\laravel\creditos\database\backups\lamarina_v4_prod.zip root@app.tiendaslamarina.com.ar:/var/www/html/app
+   ```
+   ```bash
+   # En el servidor (SSH)
+   cd /var/www/html/app
+   unzip lamarina_v4_prod.zip
+   mysql -u root -p lamarina_v4 < lamarina_v4_prod.sql
+   rm lamarina_v4_prod.zip lamarina_v4_prod.sql
+   ```

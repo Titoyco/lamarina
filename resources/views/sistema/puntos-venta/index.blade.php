@@ -1,5 +1,6 @@
 <x-app-layout>
-    <!-- Header Compacto -->
+    <div x-data="arcaModal()">
+        <!-- Header Compacto -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between py-2 border-b border-slate-200 dark:border-slate-800 mb-4 gap-2">
         <div class="flex items-center space-x-3">
             <a href="{{ route('sistema.index') }}" class="bg-white dark:bg-slate-800 p-1.5 rounded-md border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-sm" title="Volver al Panel de Sistema">
@@ -215,6 +216,12 @@
                             <td class="py-2 px-3 text-center">
                                 <div class="flex items-center justify-center space-x-1.5">
                                     @if($pv->tipo_emision === 'fiscal_hasar')
+                                        <button type="button"
+                                                @click="emitirCierreZHasar('{{ $pv->configuracion['hasar_ip'] ?? '192.168.0.199' }}', {{ (int) ($pv->configuracion['hasar_puerto'] ?? 80) }}, {{ (int) ($pv->configuracion['puerto_local'] ?? 8585) }})"
+                                                title="Emitir Cierre Diario Z en Impresora Fiscal Hasar"
+                                                class="bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 hover:bg-amber-600 hover:text-white border border-amber-300 dark:border-amber-700 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-colors inline-flex items-center gap-1 shadow-sm cursor-pointer">
+                                            <span>⚡ Cierre Z</span>
+                                        </button>
                                         <a href="{{ route('sistema.puntos-venta.descargar-config', $pv) }}"
                                            title="Descargar config.json para el puente Windows local"
                                            class="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900 border border-emerald-300 dark:border-emerald-700 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-colors inline-flex items-center gap-1 shadow-sm">
@@ -223,6 +230,18 @@
                                             </svg>
                                             <span>config.json</span>
                                         </a>
+                                    @endif
+
+                                    @if($pv->tipo_emision === 'arca_wsfe')
+                                        <button type="button"
+                                                @click="abrirModalPrueba({{ $pv->id }}, '{{ str_pad($pv->numero, 5, '0', STR_PAD_LEFT) }}', '{{ addslashes($pv->nombre) }}', '{{ $pv->configuracion['ambiente'] ?? 'homologacion' }}')"
+                                                title="Probar Emisión Homologación en ARCA WSFE"
+                                                class="bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-600 hover:text-white border border-indigo-300 dark:border-indigo-700 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-colors inline-flex items-center gap-1 shadow-sm cursor-pointer">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                            </svg>
+                                            <span>Probar Emisión</span>
+                                        </button>
                                     @endif
 
                                     <a href="{{ route('sistema.puntos-venta.edit', $pv) }}"
@@ -271,6 +290,225 @@
                 {{ $puntosVenta->links() }}
             </div>
         @endif
+
+        <!-- ============================================================== -->
+        <!-- MODAL OPERATIVO DE PRUEBA DE EMISIÓN DIGITAL ARCA (WSFEv1)    -->
+        <!-- ============================================================== -->
+        <div x-show="modalAbierto" 
+             class="fixed inset-0 z-50 overflow-y-auto" 
+             x-cloak 
+             style="display: none;">
+            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity" @click="cerrarModal()"></div>
+            
+            <div class="flex min-h-full items-center justify-center p-4">
+                <div class="relative bg-white dark:bg-slate-800 rounded-2xl max-w-lg w-full p-5 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-4 transform transition-all text-slate-800 dark:text-slate-100">
+                    <!-- Cabecera del Modal -->
+                    <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/80 pb-3">
+                        <div class="flex items-center gap-2.5">
+                            <span class="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                </svg>
+                            </span>
+                            <div>
+                                <h3 class="text-sm font-black uppercase tracking-tight text-slate-800 dark:text-white">Prueba de Emisión ARCA WSFE</h3>
+                                <p class="text-[11px] text-slate-500 font-medium" x-text="pvNombre"></p>
+                            </div>
+                        </div>
+                        <button type="button" @click="cerrarModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-sm font-bold p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700/60 transition cursor-pointer">
+                            ✕
+                        </button>
+                    </div>
+
+                    <!-- Datos del Punto de Venta y Ambiente -->
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 space-y-0.5">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">Punto de Venta</span>
+                            <span class="font-mono font-black text-slate-900 dark:text-white text-sm" x-text="'N° ' + pvNumero"></span>
+                        </div>
+                        <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 space-y-0.5">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">Ambiente</span>
+                            <span class="inline-block px-2 py-0.5 rounded text-[10px] font-black uppercase"
+                                  :class="pvAmbiente === 'produccion' ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300'"
+                                  x-text="pvAmbiente === 'produccion' ? 'Producción Oficial' : 'Homologación (Pruebas)'"></span>
+                        </div>
+                    </div>
+
+                    <!-- Parámetros del Comprobante de Prueba -->
+                    <div class="p-3 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-800/40 text-xs space-y-1.5">
+                        <div class="flex items-center justify-between font-semibold text-slate-700 dark:text-slate-300 text-[11px]">
+                            <span>Tipo de Comprobante:</span>
+                            <span class="font-bold text-slate-900 dark:text-white">Factura B (Cód. 6)</span>
+                        </div>
+                        <div class="flex items-center justify-between font-semibold text-slate-700 dark:text-slate-300 text-[11px]">
+                            <span>Receptor:</span>
+                            <span class="font-bold text-slate-900 dark:text-white">Consumidor Final (Doc 99)</span>
+                        </div>
+                        <div class="flex items-center justify-between font-semibold text-slate-700 dark:text-slate-300 text-[11px]">
+                            <span>Importe Total:</span>
+                            <span class="font-mono font-black text-emerald-700 dark:text-emerald-400">$ 121,00 ($100 Neto + $21 IVA 21%)</span>
+                        </div>
+                    </div>
+
+                    <!-- Indicador de Carga -->
+                    <div x-show="cargando" class="py-6 flex flex-col items-center justify-center space-y-2 text-indigo-600 dark:text-indigo-400">
+                        <svg class="animate-spin h-8 w-8 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Conectando con ARCA WSAA + WSFEv1...</span>
+                    </div>
+
+                    <!-- Resultado Exitoso de Autorización -->
+                    <div x-show="!cargando && resultado && resultado.success" class="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700 space-y-3">
+                        <div class="flex items-center gap-2 text-emerald-800 dark:text-emerald-300 font-bold text-xs">
+                            <span class="text-base">✓</span>
+                            <span x-text="resultado.message"></span>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2 text-xs font-mono">
+                            <div class="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-emerald-200 dark:border-emerald-800 shadow-2xs">
+                                <span class="text-[9px] uppercase tracking-wider text-slate-500 font-bold block">N° Comprobante Autorizado</span>
+                                <span class="text-base font-black text-slate-900 dark:text-white" x-text="resultado.numero_formateado"></span>
+                            </div>
+                            <div class="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-emerald-200 dark:border-emerald-800 shadow-2xs">
+                                <span class="text-[9px] uppercase tracking-wider text-slate-500 font-bold block">Vto. CAE</span>
+                                <span class="text-sm font-black text-slate-900 dark:text-white" x-text="resultado.cae_vencimiento"></span>
+                            </div>
+                        </div>
+
+                        <div class="bg-white dark:bg-slate-900 p-3 rounded-lg border border-emerald-200 dark:border-emerald-800 font-mono shadow-2xs">
+                            <span class="text-[9px] uppercase tracking-wider text-slate-500 font-bold block">CAE (Código de Autorización Electrónica)</span>
+                            <span class="text-lg font-black text-emerald-700 dark:text-emerald-400 tracking-wider block" x-text="resultado.cae"></span>
+                        </div>
+                    </div>
+
+                    <!-- Resultado con Error -->
+                    <div x-show="!cargando && resultado && !resultado.success" class="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-700 space-y-2">
+                        <div class="flex items-start gap-2 text-rose-800 dark:text-rose-300 font-bold text-xs">
+                            <span class="text-base leading-none">⚠️</span>
+                            <div>
+                                <span class="block" x-text="resultado.message"></span>
+                                <template x-if="resultado.error">
+                                    <pre class="mt-1.5 p-2 bg-rose-100/70 dark:bg-rose-900/40 rounded text-[10px] font-mono whitespace-pre-wrap text-rose-900 dark:text-rose-200" x-text="resultado.error"></pre>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Botones de Acción -->
+                    <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-700">
+                        <button type="button" @click="cerrarModal()" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer">
+                            Cerrar
+                        </button>
+                        <button type="button" 
+                                @click="ejecutarPrueba()"
+                                :disabled="cargando"
+                                class="px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition disabled:opacity-50 inline-flex items-center gap-1.5 cursor-pointer">
+                            <span x-show="!cargando">⚡ Enviar Emisión a ARCA</span>
+                            <span x-show="cargando">Procesando...</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <script>
+        function arcaModal() {
+            return {
+                modalAbierto: false,
+                cargando: false,
+                pvId: null,
+                pvNumero: '',
+                pvNombre: '',
+                pvAmbiente: 'homologacion',
+                resultado: null,
+
+                abrirModalPrueba(id, numero, nombre, ambiente) {
+                    this.pvId = id;
+                    this.pvNumero = numero;
+                    this.pvNombre = nombre;
+                    this.pvAmbiente = ambiente || 'homologacion';
+                    this.resultado = null;
+                    this.modalAbierto = true;
+                },
+
+                async emitirCierreZHasar(ip, puerto, localPort) {
+                    if (!confirm(`¿Desea emitir el Cierre Diario Z en el Controlador Fiscal Hasar 2G (${ip})?\\n\\nEsta acción cerrará la jornada fiscal del día en la memoria del impresor.`)) {
+                        return;
+                    }
+                    const endpoints = [
+                        `http://127.0.0.1:${localPort || 8585}/imprimir`,
+                        `https://127.0.0.1:8586/imprimir`,
+                        `http://127.0.0.1:${localPort || 8585}/cierre-z`,
+                        `https://127.0.0.1:8586/cierre-z`
+                    ];
+                    let payload = { accion: "cierre_z", hasar_ip: ip, hasar_puerto: puerto };
+                    let data = null;
+                    let errorMsg = '';
+                    for (let url of endpoints) {
+                        try {
+                            let res = await fetch(url, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(payload)
+                            });
+                            if (res.ok) {
+                                data = await res.json();
+                                break;
+                            }
+                        } catch (e) {
+                            errorMsg = e.message;
+                        }
+                    }
+                    if (data && data.exito) {
+                        alert(`✓ CIERRE Z EXITOSO!\\n\\nNúmero de Cierre Z emitido: ${data.numero_comprobante || 'OK'}\\n${data.mensaje}`);
+                    } else {
+                        alert(`❌ No se pudo emitir el Cierre Z.\\n\\n${(data && data.mensaje) ? data.mensaje : ('Error de conexión con el puente Hasar: ' + errorMsg)}`);
+                    }
+                },
+
+                cerrarModal() {
+                    this.modalAbierto = false;
+                },
+
+                async ejecutarPrueba() {
+                    this.cargando = true;
+                    this.resultado = null;
+
+                    try {
+                        const res = await fetch('{{ route("facturacion.emitir-digital") }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Accept': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                id_punto_venta: this.pvId,
+                                cbte_tipo: 6,
+                                concepto: 1,
+                                doc_tipo: 99,
+                                doc_nro: 0,
+                                total: 121.00,
+                                es_prueba: true,
+                            })
+                        });
+
+                        const data = await res.json();
+                        this.resultado = data;
+                    } catch (err) {
+                        this.resultado = {
+                            success: false,
+                            message: 'Error de red o comunicación al contactar el servidor: ' + err.message,
+                        };
+                    } finally {
+                        this.cargando = false;
+                    }
+                }
+            };
+        }
+    </script>
 </x-app-layout>
 

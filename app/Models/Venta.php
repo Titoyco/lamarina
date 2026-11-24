@@ -34,6 +34,8 @@ class Venta extends Model implements Auditable
         'fecha',
         'medio_pago',
         'id_medio_pago',
+        'pagos',
+        'numero_cupon',
         'subtotal',
         'recargo',
         'descuento',
@@ -57,6 +59,7 @@ class Venta extends Model implements Auditable
         'numero_factura' => 'integer',
         'cae_vencimiento' => 'date',
         'datos_fiscales' => 'array',
+        'pagos' => 'array',
     ];
     public function getRecargoFinanciacionAttribute(): float
     {
@@ -127,11 +130,16 @@ class Venta extends Model implements Auditable
 
     public function getMedioPagoFormateadoAttribute(): string
     {
+        if ($this->medio_pago === 'multipago' && !empty($this->pagos) && is_array($this->pagos)) {
+            $nombres = array_map(fn($p) => $p['nombre'] ?? $p['medio_pago'] ?? '', $this->pagos);
+            return 'Múltiples (' . implode(' + ', array_filter($nombres)) . ')';
+        }
         return match ($this->medio_pago) {
             'credito_personal' => 'Crédito Personal',
             'tarjeta_debito'   => 'Tarjeta Débito',
             'tarjeta_credito'  => 'Tarjeta Crédito',
             'transferencia'    => 'Transferencia',
+            'multipago'        => 'Múltiples Medios',
             default            => 'Efectivo',
         };
     }
@@ -146,6 +154,21 @@ class Venta extends Model implements Auditable
         return is_null($this->id_cliente);
     }
 
+    public function isPresupuesto(): bool
+    {
+        return $this->tipo_comprobante === 'PRESUPUESTO' || $this->estado === 'presupuesto';
+    }
+
+    public function isRemito(): bool
+    {
+        return $this->tipo_comprobante === 'REMITO' || $this->estado === 'remito';
+    }
+
+    public function isNotaCredito(): bool
+    {
+        return in_array(strtoupper((string) $this->tipo_comprobante), ['NOTA_CREDITO', 'NOTA_CREDITO_B', 'NOTA_CREDITO_A', 'NOTA_CREDITO_C', 'N_CREDITO_B', 'N_CREDITO_A']);
+    }
+
     public function isFacturaA(): bool
     {
         return $this->tipo_comprobante === 'FACTURA_A';
@@ -154,6 +177,47 @@ class Venta extends Model implements Auditable
     public function isFacturaB(): bool
     {
         return $this->tipo_comprobante === 'FACTURA_B' || empty($this->tipo_comprobante);
+    }
+
+    public function isFacturaC(): bool
+    {
+        return $this->tipo_comprobante === 'FACTURA_C';
+    }
+
+    public function isFactura(): bool
+    {
+        return in_array($this->tipo_comprobante, ['FACTURA_A', 'FACTURA_B', 'FACTURA_C', null, '']) && !$this->isPresupuesto() && !$this->isRemito() && !$this->isNotaCredito();
+    }
+
+    public function isFiscal(): bool
+    {
+        return ($this->isFactura() || $this->isNotaCredito()) && !$this->isPresupuesto() && !$this->isRemito();
+    }
+
+    public function getLetraComprobanteAttribute(): string
+    {
+        $tipo = strtoupper((string) $this->tipo_comprobante);
+        if ($this->isFacturaA() || $tipo === 'NOTA_CREDITO_A') return 'A';
+        if ($this->isFacturaC() || $tipo === 'NOTA_CREDITO_C') return 'C';
+        if ($this->isRemito()) return 'R';
+        if ($this->isPresupuesto()) return 'P';
+        if ($this->isFacturaB() || $tipo === 'NOTA_CREDITO_B' || $tipo === 'NOTA_CREDITO') return 'B';
+        return 'X';
+    }
+
+    public function getTipoComprobanteNombreAttribute(): string
+    {
+        return match (strtoupper((string) $this->tipo_comprobante)) {
+            'FACTURA_A' => 'Factura A',
+            'FACTURA_B' => 'Factura B',
+            'FACTURA_C' => 'Factura C',
+            'REMITO'    => 'Remito de Entrega',
+            'PRESUPUESTO' => 'Presupuesto',
+            'NOTA_CREDITO_A' => 'Nota de Crédito A',
+            'NOTA_CREDITO_B' => 'Nota de Crédito B',
+            'NOTA_CREDITO'   => 'Nota de Crédito',
+            default => 'Factura B',
+        };
     }
 
     public function esExentoIva(): bool

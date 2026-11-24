@@ -33,10 +33,14 @@
     <!-- Barra Superior de Control de Impresión (No visible al imprimir ni en modo embebido) -->
     <div class="no-print max-w-3xl mx-auto mb-4 bg-slate-900 text-white p-3 rounded-xl shadow-lg flex flex-wrap items-center justify-between gap-2">
         <div class="flex items-center space-x-2">
-            <span class="text-sm font-bold">Factura #{{ $venta->comprobante }}</span>
+            <span class="text-sm font-bold">{{ $venta->tipo_comprobante_nombre }} #{{ $venta->comprobante }}</span>
             <span class="text-xs text-slate-400 font-mono">({{ $venta->fecha ? $venta->fecha->format('d/m/Y H:i') : '' }})</span>
             @if($venta->estado === 'anulada')
                 <span class="bg-rose-600 text-white font-black text-[10px] px-2 py-0.5 rounded uppercase">Anulada</span>
+            @elseif($venta->estado === 'remito')
+                <span class="bg-amber-600 text-white font-black text-[10px] px-2 py-0.5 rounded uppercase">Remito</span>
+            @elseif($venta->estado === 'presupuesto')
+                <span class="bg-purple-600 text-white font-black text-[10px] px-2 py-0.5 rounded uppercase">Presupuesto</span>
             @endif
         </div>
 
@@ -96,10 +100,18 @@
             <!-- Datos del Comprobante -->
             <div class="space-y-0.5 text-[10px]">
                 <div class="flex justify-between font-bold">
-                    <span>FACTURA {{ $venta->isFacturaA() ? 'A' : 'B' }}</span>
+                    <span>{{ strtoupper($venta->tipo_comprobante_nombre) }} ({{ $venta->letra_comprobante }})</span>
                     <span>N° {{ $venta->comprobante }}</span>
                 </div>
-                @if($venta->esExentoIva())
+                @if($venta->isPresupuesto())
+                    <div class="text-[9px] font-bold text-purple-700 bg-purple-50 p-1 text-center rounded border border-purple-200">
+                        PRESUPUESTO / COTIZACIÓN - NO VÁLIDO COMO FACTURA
+                    </div>
+                @elseif($venta->isRemito())
+                    <div class="text-[9px] font-bold text-amber-700 bg-amber-50 p-1 text-center rounded border border-amber-200">
+                        REMITO DE SALIDA / ENTREGA - NO VÁLIDO COMO FACTURA
+                    </div>
+                @elseif($venta->esExentoIva())
                     <div class="text-[9px] font-bold text-slate-700 bg-slate-100 p-0.5 text-center rounded">
                         Operación Exenta de IVA - Ley 19.640 (Área Aduanera Especial)
                     </div>
@@ -220,6 +232,12 @@
                         <div class="font-bold uppercase">Firma del Titular</div>
                         <div class="text-[8px] text-slate-500">Acepto y pagaré conforme a las condiciones de crédito.</div>
                     </div>
+                @elseif($venta->isRemito())
+                    <div class="pt-6 pb-2 text-center text-[9px] space-y-1">
+                        <div class="border-b border-dotted border-slate-500 w-3/4 mx-auto mb-1"></div>
+                        <div class="font-bold uppercase">Recibí Conforme (Firma y DNI)</div>
+                        <div class="text-[8px] text-slate-500">Constancia de recepción de mercadería</div>
+                    </div>
                 @endif
             </div>
 
@@ -287,16 +305,33 @@
 
                         <!-- Letra Comprobante Centrada -->
                         <div class="w-16 h-16 border-2 border-slate-800 rounded flex flex-col items-center justify-center bg-slate-50">
-                            <span class="text-2xl font-black text-slate-900 leading-none">{{ $venta->isFacturaA() ? 'A' : 'B' }}</span>
-                            <span class="text-[8px] font-bold text-slate-600 uppercase">{{ $venta->isFacturaA() ? 'Cód. 01' : 'Cód. 06' }}</span>
+                            <span class="text-2xl font-black text-slate-900 leading-none">{{ $venta->letra_comprobante }}</span>
+                            <span class="text-[8px] font-bold text-slate-600 uppercase">
+                                @if($venta->isFacturaA()) Cód. 01
+                                @elseif($venta->isFacturaB()) Cód. 06
+                                @elseif($venta->isFacturaC()) Cód. 11
+                                @elseif($venta->isRemito()) REM
+                                @elseif($venta->isPresupuesto()) PRE
+                                @elseif($venta->isNotaCredito()) NC
+                                @else DOC
+                                @endif
+                            </span>
                         </div>
 
                         <!-- Número y Ejemplar -->
                         <div class="w-1/2 text-right">
                             <span class="text-[10px] font-black uppercase text-slate-500 block">{{ $ejemplar }}</span>
-                            <h2 class="text-lg font-black font-mono text-slate-900">FACTURA {{ $venta->isFacturaA() ? 'A' : 'B' }}</h2>
+                            <h2 class="text-lg font-black font-mono text-slate-900">{{ strtoupper($venta->tipo_comprobante_nombre) }}</h2>
                             <p class="text-xs font-mono font-bold text-indigo-700">N° {{ $venta->comprobante }}</p>
-                            @if($venta->esExentoIva())
+                            @if($venta->isPresupuesto())
+                                <span class="inline-block text-[9px] font-bold text-purple-800 bg-purple-50 border border-purple-300 px-1.5 py-0.5 rounded mt-0.5">
+                                    Presupuesto / Cotización - Documento no válido como factura
+                                </span>
+                            @elseif($venta->isRemito())
+                                <span class="inline-block text-[9px] font-bold text-amber-800 bg-amber-50 border border-amber-300 px-1.5 py-0.5 rounded mt-0.5">
+                                    Remito de Entrega - Documento no válido como factura
+                                </span>
+                            @elseif($venta->esExentoIva())
                                 <span class="inline-block text-[9px] font-bold text-teal-800 bg-teal-50 border border-teal-300 px-1.5 py-0.5 rounded mt-0.5">
                                     Operación Exenta de IVA - Ley 19.640 (AAE)
                                 </span>
@@ -422,6 +457,17 @@
                             <div class="w-64 text-center">
                                 <div class="border-b border-slate-600 mb-1"></div>
                                 <span class="text-[10px] font-bold uppercase text-slate-600">Firma del Titular / Deudor</span>
+                            </div>
+                        </div>
+                    @elseif($venta->isRemito())
+                        <div class="mt-8 pt-4 border-t border-dashed border-slate-400 flex justify-between">
+                            <div class="w-64 text-center">
+                                <div class="border-b border-slate-600 mb-1"></div>
+                                <span class="text-[10px] font-bold uppercase text-slate-600">Entregó (Despacho / Depósito)</span>
+                            </div>
+                            <div class="w-64 text-center">
+                                <div class="border-b border-slate-600 mb-1"></div>
+                                <span class="text-[10px] font-bold uppercase text-slate-600">Recibí Conforme (Firma y DNI)</span>
                             </div>
                         </div>
                     @endif

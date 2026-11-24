@@ -6,10 +6,12 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "afipsdk/afip.php": "*",
         "barryvdh/laravel-dompdf": "*",
         "laravel/framework": "^11.9",
         "laravel/tinker": "^2.9",
         "mike42/escpos-php": "^4.0",
+        "owen-it/laravel-auditing": "*",
         "picqer/php-barcode-generator": "^3.2"
     },
     "require-dev": {

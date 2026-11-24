@@ -126,7 +126,12 @@ class VentaController extends Controller
             $query->where('medio_pago', $request->medio_pago);
         }
 
-        // 4. Filtro por estado
+        // 4. Filtro por tipo de comprobante
+        if ($request->filled('tipo_comprobante') && $request->tipo_comprobante !== 'all') {
+            $query->where('tipo_comprobante', $request->tipo_comprobante);
+        }
+
+        // 5. Filtro por estado
         if ($request->filled('estado') && $request->estado !== 'all') {
             $query->where('estado', $request->estado);
         }
@@ -266,6 +271,31 @@ class VentaController extends Controller
         // Medios de pago activos para el mostrador
         $mediosPago = \App\Models\MedioPago::activos()->get();
 
+        // Carga opcional de presupuesto existente para facturar o transformar
+        $presupuestoInicial = null;
+        if ($request->filled('presupuesto_id')) {
+            $presupuestoModel = Venta::with(['items.producto', 'cliente'])->find($request->presupuesto_id);
+            if ($presupuestoModel) {
+                $clienteInicial = $clienteInicial ?: $presupuestoModel->cliente;
+                $presupuestoInicial = [
+                    'id'          => $presupuestoModel->id,
+                    'comprobante' => $presupuestoModel->comprobante,
+                    'items'       => $presupuestoModel->items->map(function ($it) {
+                        return [
+                            'id_producto'          => $it->id_producto,
+                            'codigo_producto'      => $it->codigo_producto,
+                            'codigo_barra'         => $it->producto?->codigo_barra ?? $it->codigo_producto,
+                            'descripcion'          => $it->descripcion,
+                            'cantidad'             => (float) $it->cantidad,
+                            'precio_unitario'      => (float) $it->precio_unitario,
+                            'descuento_porcentaje' => (float) ($it->descuento_porcentaje ?? 0),
+                            'subtotal'             => (float) $it->subtotal,
+                        ];
+                    })->values()->all(),
+                ];
+            }
+        }
+
         return view('ventas.create', compact(
             'sucursalActiva',
             'presentacion',
@@ -278,7 +308,8 @@ class VentaController extends Controller
             'totalesCajaActiva',
             'mediosPago',
             'clienteInicial',
-            'medioPagoInicial'
+            'medioPagoInicial',
+            'presupuestoInicial'
         ));
     }
 
@@ -681,8 +712,16 @@ class VentaController extends Controller
                 'id_cliente'              => 'nullable|exists:clientes,id',
                 'cliente_nombre'          => 'nullable|string|max:191',
                 'cliente_documento'       => 'nullable|string|max:50',
-                'tipo_comprobante'        => 'nullable|string|in:FACTURA_A,FACTURA_B,factura_a,factura_b',
-                'medio_pago'              => 'required|string|max:50',
+                'tipo_comprobante'        => 'nullable|string|in:FACTURA_B,FACTURA_A,FACTURA_C,REMITO,PRESUPUESTO,NOTA_CREDITO,NOTA_CREDITO_B,NOTA_CREDITO_A,factura_b,factura_a,factura_c,remito,presupuesto,nota_credito,nota_credito_b,nota_credito_a',
+                'medio_pago'              => 'nullable|string|max:50',
+                'pagos'                   => 'nullable|array',
+                'pagos.*.id_medio_pago'   => 'nullable',
+                'pagos.*.medio_pago'      => 'nullable|string|max:50',
+                'pagos.*.nombre'          => 'nullable|string|max:100',
+                'pagos.*.monto'           => 'nullable|numeric|min:0.01',
+                'pagos.*.cupon'           => 'nullable|string|max:100',
+                'numero_cupon'            => 'nullable|string|max:100',
+                'cupon'                   => 'nullable|string|max:100',
                 'descuento'               => 'nullable|numeric|min:0',
                 'cuotas'                  => 'nullable|integer|min:1|max:4',
                 'autorizado_vendedor'     => 'nullable|boolean',
@@ -694,6 +733,8 @@ class VentaController extends Controller
                 'items.*.descuento_porcentaje' => 'nullable|numeric|min:0|max:100',
                 'items.*.id_producto'          => 'nullable|exists:productos,id',
                 'items.*.codigo_producto'      => 'nullable|string|max:50',
+                'hasar_ticket_numero'          => 'nullable|integer',
+                'hasar_pv_numero'              => 'nullable|integer',
             ]);
         } catch (ValidationException $ve) {
             $firstError = collect($ve->errors())->flatten()->first() ?? 'Datos de la venta inválidos.';
@@ -752,10 +793,64 @@ class VentaController extends Controller
             return back()->with('error', 'El total de la venta debe ser mayor a cero.');
         }
 
-        $medioPago = $validated['medio_pago'];
-        $medioPagoModel = \App\Models\MedioPago::where('codigo', $medioPago)->first();
-        $idMedioPago = $medioPagoModel?->id;
-        $esCreditoPersonal = ($medioPago === 'credito_personal' || $medioPagoModel?->tipo_base === 'credito');
+        // Procesar lista de medios de pago (soporte unificado multipago y trazabilidad de cupones)
+        $pagosInput = $request->input('pagos');
+        $pagosLista = [];
+        $cuponesArray = [];
+        $cuponInput = $request->input('numero_cupon') ?? $request->input('cupon') ?? null;
+        if (!empty($cuponInput)) {
+            $cuponesArray[] = trim((string) $cuponInput);
+        }
+
+        if (!empty($pagosInput) && is_array($pagosInput)) {
+            foreach ($pagosInput as $p) {
+                $pMonto = (float) ($p['monto'] ?? 0);
+                if ($pMonto <= 0) continue;
+                $pMedio = $p['medio_pago'] ?? 'efectivo';
+                $pModel = \App\Models\MedioPago::where('codigo', $pMedio)->orWhere('id', $p['id_medio_pago'] ?? 0)->first();
+                $pCupon = trim((string) ($p['cupon'] ?? ''));
+                if ($pCupon !== '') {
+                    $cuponesArray[] = $pCupon;
+                }
+                $pagosLista[] = [
+                    'id_medio_pago' => $pModel?->id ?? ($p['id_medio_pago'] ?? null),
+                    'medio_pago'    => $pModel?->codigo ?? $pMedio,
+                    'nombre'        => $p['nombre'] ?? $pModel?->nombre ?? ucwords(str_replace('_', ' ', $pMedio)),
+                    'monto'         => $pMonto,
+                    'cupon'         => $pCupon ?: null,
+                    'tipo_base'     => $pModel?->tipo_base ?? 'efectivo',
+                ];
+            }
+        }
+
+        $numeroCuponFinal = !empty($cuponesArray) ? implode(', ', array_unique($cuponesArray)) : null;
+
+        if (count($pagosLista) > 1) {
+            $medioPago = 'multipago';
+            $idMedioPago = null;
+            $medioPagoModel = null;
+            $esCreditoPersonal = collect($pagosLista)->contains(fn($p) => ($p['medio_pago'] === 'credito_personal' || ($p['tipo_base'] ?? '') === 'credito'));
+        } elseif (count($pagosLista) === 1) {
+            $medioPago = $pagosLista[0]['medio_pago'];
+            $idMedioPago = $pagosLista[0]['id_medio_pago'];
+            $medioPagoModel = \App\Models\MedioPago::find($idMedioPago) ?? \App\Models\MedioPago::where('codigo', $medioPago)->first();
+            $esCreditoPersonal = ($medioPago === 'credito_personal' || $medioPagoModel?->tipo_base === 'credito');
+        } else {
+            $medioPago = $validated['medio_pago'] ?? 'efectivo';
+            $medioPagoModel = \App\Models\MedioPago::where('codigo', $medioPago)->first();
+            $idMedioPago = $medioPagoModel?->id;
+            $esCreditoPersonal = ($medioPago === 'credito_personal' || $medioPagoModel?->tipo_base === 'credito');
+            $pagosLista = [
+                [
+                    'id_medio_pago' => $idMedioPago,
+                    'medio_pago'    => $medioPago,
+                    'nombre'        => $medioPagoModel?->nombre ?? ucwords(str_replace('_', ' ', $medioPago)),
+                    'monto'         => 0, // Se actualizará al total final
+                    'cupon'         => $numeroCuponFinal,
+                    'tipo_base'     => $medioPagoModel?->tipo_base ?? 'efectivo',
+                ]
+            ];
+        }
 
         $cliente = null;
         $credito = null;
@@ -829,6 +924,10 @@ class VentaController extends Controller
 
         $totalFinal = max(0, round($subtotal + $recargoFinanciacion - $descuentoTotal, 2));
 
+        if (count($pagosLista) === 1 && $pagosLista[0]['monto'] <= 0) {
+            $pagosLista[0]['monto'] = $totalFinal;
+        }
+
         // 1. Resolver Punto de Venta asignado a este puesto / terminal (disponible tanto en la transacción como en la respuesta)
         $idPuntoVenta = $validated['id_punto_venta'] ?? session('terminal_punto_venta_id');
         $puntoVenta = $idPuntoVenta 
@@ -844,6 +943,8 @@ class VentaController extends Controller
                 $validated,
                 $medioPago,
                 $idMedioPago,
+                $pagosLista,
+                $numeroCuponFinal,
                 $esCreditoPersonal,
                 $subtotal,
                 $recargoFinanciacion,
@@ -856,19 +957,69 @@ class VentaController extends Controller
                 $estadoCred,
                 $puntoVenta
             ) {
-                $tipoEmision = $puntoVenta?->tipo_emision;
-                $pvNumero = $puntoVenta ? $puntoVenta->numero : $sucursal->id;
+                // 1. Determinar datos del cliente y tipo de comprobante
+                $clienteNombre = $cliente?->nombre ?? ($validated['cliente_nombre'] ?? 'CONSUMIDOR FINAL');
+                $clienteDoc = $cliente?->dni ?? ($validated['cliente_documento'] ?? null);
+
+                $tipoComprobante = strtoupper($validated['tipo_comprobante'] ?? $input['tipo_comprobante'] ?? 'FACTURA_B');
+                $comprobantesPermitidos = [
+                    'FACTURA_B', 'FACTURA_A', 'FACTURA_C', 
+                    'REMITO', 'PRESUPUESTO', 
+                    'NOTA_CREDITO', 'NOTA_CREDITO_B', 'NOTA_CREDITO_A'
+                ];
+                if (!in_array($tipoComprobante, $comprobantesPermitidos)) {
+                    $tipoComprobante = 'FACTURA_B';
+                }
+
+                // Si seleccionó Nota de Crédito genérica, resolver según CUIT
+                if ($tipoComprobante === 'NOTA_CREDITO') {
+                    $docNumerico = preg_replace('/\D/', '', (string) ($clienteDoc ?? ''));
+                    $tipoComprobante = (strlen($docNumerico) === 11) ? 'NOTA_CREDITO_A' : 'NOTA_CREDITO_B';
+                }
+
+                $esPresupuesto = ($tipoComprobante === 'PRESUPUESTO');
+                $esRemito      = ($tipoComprobante === 'REMITO');
+                $esNotaCredito = in_array($tipoComprobante, ['NOTA_CREDITO', 'NOTA_CREDITO_B', 'NOTA_CREDITO_A']);
+                $esFactura     = in_array($tipoComprobante, ['FACTURA_B', 'FACTURA_A', 'FACTURA_C']);
+                $esFiscal      = ($esFactura || $esNotaCredito) && !$esPresupuesto && !$esRemito;
+
+                // Validación CUIT para comprobantes tipo A
+                if ($tipoComprobante === 'FACTURA_A' || $tipoComprobante === 'NOTA_CREDITO_A') {
+                    $docNumerico = preg_replace('/\D/', '', (string) ($clienteDoc ?? ''));
+                    if (strlen($docNumerico) !== 11) {
+                        throw new \Exception("Para emitir comprobantes tipo A (" . ($tipoComprobante === 'FACTURA_A' ? 'Factura A' : 'Nota de Crédito A') . ") es obligatorio registrar un cliente con CUIT válido de 11 dígitos.");
+                    }
+                }
+
+                $tipoEmision = $esFiscal ? $puntoVenta?->tipo_emision : null;
+                $pvNumero = !empty($validated['hasar_pv_numero'])
+                    ? (int) $validated['hasar_pv_numero']
+                    : ($puntoVenta ? $puntoVenta->numero : $sucursal->id);
 
                 // Número correlativo de comprobante
                 $numeroFactura = !empty($validated['hasar_ticket_numero'])
                     ? (int) $validated['hasar_ticket_numero']
                     : $sucursal->siguienteNumeroComprobante();
 
-                $comprobanteFormateado = sprintf('%05d-%08d', $pvNumero, $numeroFactura);
+                if ($esPresupuesto) {
+                    $comprobanteFormateado = sprintf('PRE-%05d-%08d', $pvNumero, $numeroFactura);
+                } elseif ($esRemito) {
+                    $comprobanteFormateado = sprintf('REM-%05d-%08d', $pvNumero, $numeroFactura);
+                } elseif ($esNotaCredito) {
+                    $comprobanteFormateado = sprintf('NC-%05d-%08d', $pvNumero, $numeroFactura);
+                } else {
+                    $comprobanteFormateado = sprintf('%05d-%08d', $pvNumero, $numeroFactura);
+                }
+
+                $estadoVenta = match(true) {
+                    $esPresupuesto => 'presupuesto',
+                    $esRemito      => 'remito',
+                    default        => 'completada',
+                };
 
                 // 2. Si es Crédito Personal, dar de alta el Crédito y las Cuotas
                 $idCredito = null;
-                if ($esCreditoPersonal && $cliente) {
+                if ($esCreditoPersonal && $cliente && !$esPresupuesto) {
                     $presentacion = Presentacion::activaParaSucursal($sucursal->id);
 
                     // Incremento de correlativo en sucursal_indices
@@ -924,23 +1075,7 @@ class VentaController extends Controller
                     ]);
                 }
 
-                // 3. Crear cabecera de Venta y determinar tipo de comprobante
-                $clienteNombre = $cliente?->nombre ?? ($validated['cliente_nombre'] ?? 'CONSUMIDOR FINAL');
-                $clienteDoc = $cliente?->dni ?? ($validated['cliente_documento'] ?? null);
-
-                $tipoComprobante = strtoupper($validated['tipo_comprobante'] ?? $input['tipo_comprobante'] ?? 'FACTURA_B');
-                if (!in_array($tipoComprobante, ['FACTURA_A', 'FACTURA_B'])) {
-                    $tipoComprobante = 'FACTURA_B';
-                }
-
-                // Si se emite Factura A, verificar que el comprador tenga CUIT válido de 11 dígitos
-                if ($tipoComprobante === 'FACTURA_A') {
-                    $docNumerico = preg_replace('/\D/', '', (string) ($clienteDoc ?? ''));
-                    if (strlen($docNumerico) !== 11) {
-                        throw new \Exception("Para emitir Factura A es obligatorio seleccionar o ingresar un cliente con CUIT válido de 11 dígitos.");
-                    }
-                }
-
+                // 3. Crear cabecera de Venta
                 $venta = Venta::create([
                     'id_sucursal'         => $sucursal->id,
                     'id_punto_venta'      => $puntoVenta?->id,
@@ -957,14 +1092,16 @@ class VentaController extends Controller
                     'fecha'               => now(),
                     'medio_pago'          => $medioPago,
                     'id_medio_pago'       => $idMedioPago,
+                    'pagos'               => $pagosLista,
+                    'numero_cupon'        => $numeroCuponFinal,
                     'subtotal'            => $subtotal,
                     'recargo'             => $recargoFinanciacion,
                     'descuento'           => $descuentoTotal,
                     'total'               => $totalFinal,
                     'id_credito'          => $idCredito,
-                    'cuotas_credito'      => $esCreditoPersonal ? $cuotasNum : null,
-                    'valor_cuota_credito' => $esCreditoPersonal ? $valorCuotaRef : null,
-                    'estado'              => 'completada',
+                    'cuotas_credito'      => ($esCreditoPersonal && !$esPresupuesto) ? $cuotasNum : null,
+                    'valor_cuota_credito' => ($esCreditoPersonal && !$esPresupuesto) ? $valorCuotaRef : null,
+                    'estado'              => $estadoVenta,
                     'observaciones'       => $validated['observaciones'] ?? null,
                 ]);
 
@@ -981,7 +1118,6 @@ class VentaController extends Controller
                     if ($prodId) {
                         $producto = Producto::find($prodId);
                         if ($producto && $producto->controla_stock) {
-                            // Descuento en productos_stock de la sucursal activa
                             $stockRow = ProductoStock::firstOrCreate(
                                 ['producto_id' => $producto->id, 'sucursal_id' => $sucursal->id],
                                 ['stock' => 0, 'precio_venta' => $producto->precio_venta]
@@ -989,41 +1125,70 @@ class VentaController extends Controller
 
                             $stockAnterior = (float) $stockRow->stock;
 
-                            // Guardia estricta: evitar generar stock negativo
-                            if ($stockAnterior < $cant) {
-                                throw new \Exception("Stock insuficiente para el artículo '{$producto->descripcion}' en {$sucursal->nombre}. Stock disponible: {$stockAnterior}, solicitado: {$cant}. Realice la corrección por recuento físico antes de facturar.");
+                            if ($esPresupuesto) {
+                                // Presupuesto: NO afecta stock, no valida disponibilidad física, no genera movimiento
+                                $descuentaStock = false;
+                            } elseif ($esNotaCredito) {
+                                // Nota de Crédito: Reingreso de mercadería al inventario (aumenta stock)
+                                $descuentaStock = false;
+                                $stockNuevo = round($stockAnterior + $cant, 2);
+                                $stockRow->update(['stock' => $stockNuevo]);
+
+                                ProductoMovimiento::create([
+                                    'producto_id'      => $producto->id,
+                                    'sucursal_id'      => $sucursal->id,
+                                    'tipo'             => 'devolucion',
+                                    'cantidad'         => $cant,
+                                    'stock_anterior'   => $stockAnterior,
+                                    'stock_nuevo'      => $stockNuevo,
+                                    'precio_costo'     => $producto->precio_costo ?? 0,
+                                    'precio_venta'     => $unitario,
+                                    'usuario_id'       => $user?->id,
+                                    'comprobante'      => $comprobanteFormateado,
+                                    'motivo'           => "Nota de Crédito {$comprobanteFormateado}",
+                                    'referencia_type'  => Venta::class,
+                                    'referencia_id'    => $venta->id,
+                                ]);
+                            } else {
+                                // Facturas y Remitos: SÍ descuentan stock
+                                if ($stockAnterior < $cant) {
+                                    throw new \Exception("Stock insuficiente para el artículo '{$producto->descripcion}' en {$sucursal->nombre}. Stock disponible: {$stockAnterior}, solicitado: {$cant}. Realice la corrección por recuento físico antes de continuar.");
+                                }
+
+                                $descuentaStock = true;
+                                $stockNuevo = round($stockAnterior - $cant, 2);
+                                $stockRow->update(['stock' => $stockNuevo]);
+
+                                $tipoMovimiento = $esRemito ? 'remito' : 'venta';
+                                $motivoMovimiento = $esRemito ? "Remito de Entrega {$comprobanteFormateado}" : "Venta Factura {$comprobanteFormateado}";
+
+                                ProductoMovimiento::create([
+                                    'producto_id'      => $producto->id,
+                                    'sucursal_id'      => $sucursal->id,
+                                    'tipo'             => $tipoMovimiento,
+                                    'cantidad'         => -$cant,
+                                    'stock_anterior'   => $stockAnterior,
+                                    'stock_nuevo'      => $stockNuevo,
+                                    'precio_costo'     => $producto->precio_costo ?? 0,
+                                    'precio_venta'     => $unitario,
+                                    'usuario_id'       => $user?->id,
+                                    'comprobante'      => $comprobanteFormateado,
+                                    'motivo'           => $motivoMovimiento,
+                                    'referencia_type'  => Venta::class,
+                                    'referencia_id'    => $venta->id,
+                                ]);
+
+                                if ($esFactura) {
+                                    $producto->fecha_ultima_venta = now();
+                                    $producto->total_ventas_unidades = (float) $producto->total_ventas_unidades + $cant;
+                                    $producto->total_ventas_operaciones = (int) $producto->total_ventas_operaciones + 1;
+                                    $producto->save();
+                                }
                             }
-
-                            $descuentaStock = true;
-                            $stockNuevo = round($stockAnterior - $cant, 2);
-                            $stockRow->update(['stock' => $stockNuevo]);
-
-                            // Asentar en productos_movimientos (auditoría de inventario)
-                            ProductoMovimiento::create([
-                                'producto_id'      => $producto->id,
-                                'sucursal_id'      => $sucursal->id,
-                                'tipo'             => 'venta',
-                                'cantidad'         => -$cant,
-                                'stock_anterior'   => $stockAnterior,
-                                'stock_nuevo'      => $stockNuevo,
-                                'precio_costo'     => $producto->precio_costo ?? 0,
-                                'precio_venta'     => $unitario,
-                                'usuario_id'       => $user?->id,
-                                'comprobante'      => $comprobanteFormateado,
-                                'motivo'           => "Venta Factura {$comprobanteFormateado}",
-                                'referencia_type'  => Venta::class,
-                                'referencia_id'    => $venta->id,
-                            ]);
-
-                            // Estadísticas de rotación en producto
-                            $producto->fecha_ultima_venta = now();
-                            $producto->total_ventas_unidades = (float) $producto->total_ventas_unidades + $cant;
-                            $producto->total_ventas_operaciones = (int) $producto->total_ventas_operaciones + 1;
-                            $producto->save();
                         }
                     }
 
-                    // Guardar ítem de la factura
+                    // Guardar ítem del comprobante
                     VentaItem::create([
                         'id_venta'             => $venta->id,
                         'id_producto'          => $prodId,
@@ -1038,11 +1203,19 @@ class VentaController extends Controller
                     ]);
                 }
 
-                // 5. Emisión Fiscal según la Modalidad del Punto de Venta
-                if ($puntoVenta && $tipoEmision === 'arca_wsfe') {
+                // 5. Emisión Fiscal según la Modalidad del Punto de Venta (Solo comprobantes fiscales)
+                if ($esFiscal && $puntoVenta && $tipoEmision === 'arca_wsfe') {
                     try {
+                        $tipoCbteAfip = match($tipoComprobante) {
+                            'FACTURA_A' => 1,
+                            'NOTA_CREDITO_A' => 3,
+                            'FACTURA_B' => 6,
+                            'NOTA_CREDITO_B', 'NOTA_CREDITO' => 8,
+                            'FACTURA_C' => 11,
+                            'NOTA_CREDITO_C' => 13,
+                            default => 6
+                        };
                         $arcaService = app(ArcaWsfeService::class);
-                        $tipoCbteAfip = ($tipoComprobante === 'FACTURA_A') ? 1 : 6;
                         $resArca = $arcaService->emitirFactura($puntoVenta, $venta, $tipoCbteAfip);
                         $venta->update([
                             'numero_factura'  => $resArca['numero_factura'],
@@ -1056,14 +1229,25 @@ class VentaController extends Controller
                         Log::error("Fallo emisión ARCA en venta #{$venta->id}: " . $eArca->getMessage());
                         throw new \Exception("Fallo en Factura Digital ARCA: " . $eArca->getMessage());
                     }
-                } elseif ($puntoVenta && $tipoEmision === 'fiscal_hasar') {
+                } elseif ($esFiscal && $puntoVenta && $tipoEmision === 'fiscal_hasar') {
+                    $letra = match($tipoComprobante) {
+                        'FACTURA_A', 'NOTA_CREDITO_A' => 'A',
+                        'FACTURA_C', 'NOTA_CREDITO_C' => 'C',
+                        default => 'B',
+                    };
                     $venta->update([
                         'datos_fiscales' => [
                             'modelo'       => $puntoVenta->configuracion['modelo'] ?? 'SMH/PT-250F',
                             'hasar_ip'     => $puntoVenta->configuracion['hasar_ip'] ?? null,
                             'puerto_local' => $puntoVenta->configuracion['puerto_local'] ?? 8585,
-                            'letra'        => ($tipoComprobante === 'FACTURA_A') ? 'A' : 'B',
+                            'letra'        => $letra,
+                            'pagos'        => $pagosLista,
+                            'cupon'        => $numeroCuponFinal,
                         ],
+                    ]);
+                } elseif (!$esFiscal) {
+                    $venta->update([
+                        'tipo_emision' => null,
                     ]);
                 }
 
@@ -1080,25 +1264,30 @@ class VentaController extends Controller
 
         if ($request->wantsJson()) {
             return response()->json([
-                'success'          => true,
-                'venta_id'         => $venta->id,
-                'comprobante'      => $venta->comprobante,
-                'tipo_comprobante' => $venta->tipo_comprobante,
-                'es_exento_iva'    => $venta->esExentoIva(),
-                'total'            => (float) $venta->total,
-                'tipo_emision'     => $venta->tipo_emision,
-                'cae'              => $venta->cae,
-                'cae_vencimiento'  => $venta->cae_vencimiento ? $venta->cae_vencimiento->format('d/m/Y') : null,
-                'afip_qr'          => $venta->afip_qr,
-                'hasar_config'     => ($venta->tipo_emision === 'fiscal_hasar' && $pvConfig) ? [
+                'success'                 => true,
+                'venta_id'                => $venta->id,
+                'comprobante'             => $venta->comprobante,
+                'tipo_comprobante'        => $venta->tipo_comprobante,
+                'tipo_comprobante_nombre' => $venta->tipo_comprobante_nombre,
+                'estado'                  => $venta->estado,
+                'es_presupuesto'          => $venta->isPresupuesto(),
+                'es_remito'               => $venta->isRemito(),
+                'es_nota_credito'         => $venta->isNotaCredito(),
+                'es_exento_iva'           => $venta->esExentoIva(),
+                'total'                   => (float) $venta->total,
+                'tipo_emision'            => $venta->tipo_emision,
+                'cae'                     => $venta->cae,
+                'cae_vencimiento'         => $venta->cae_vencimiento ? $venta->cae_vencimiento->format('d/m/Y') : null,
+                'afip_qr'                 => $venta->afip_qr,
+                'hasar_config'            => ($venta->tipo_emision === 'fiscal_hasar' && $pvConfig && $venta->isFiscal()) ? [
                     'puerto_local' => $pvConfig->configuracion['puerto_local'] ?? 8585,
                     'hasar_ip'     => $pvConfig->configuracion['hasar_ip'] ?? '',
-                    'hasar_puerto' => $pvConfig->configuracion['hasar_puerto'] ?? 2000,
+                    'hasar_puerto' => (int) (($pvConfig->configuracion['hasar_puerto'] ?? 20000) == 2000 ? 20000 : ($pvConfig->configuracion['hasar_puerto'] ?? 20000)),
                     'modelo'       => $pvConfig->configuracion['modelo'] ?? 'SMH/PT-250F',
-                    'letra'        => ($venta->tipo_comprobante === 'FACTURA_A') ? 'A' : 'B',
+                    'letra'        => $venta->letra_comprobante,
                     'es_exento_iva'=> $venta->esExentoIva(),
                 ] : null,
-                'redirect_url'    => route('ventas.show', $venta->id),
+                'redirect_url'            => route('ventas.show', $venta->id),
                 'ticket_url'      => route('ventas.imprimir', ['venta' => $venta->id, 'formato' => 'ticket']),
                 'a4_url'          => route('ventas.imprimir', ['venta' => $venta->id, 'formato' => 'a4']),
                 'id_credito'      => $venta->id_credito,
@@ -1249,6 +1438,70 @@ class VentaController extends Controller
     }
 
     /**
+     * Factura posteriormente un Remito existente sin volver a descontar stock.
+     */
+    public function facturarRemito(Request $request, Venta $venta)
+    {
+        if (!$venta->isRemito() || $venta->estado !== 'remito') {
+            return back()->with('error', 'El comprobante seleccionado no es un remito pendiente de facturar.');
+        }
+
+        $validated = $request->validate([
+            'tipo_comprobante' => 'required|string|in:FACTURA_B,FACTURA_A,FACTURA_C',
+        ]);
+
+        $tipoComprobante = $validated['tipo_comprobante'];
+        if ($tipoComprobante === 'FACTURA_A') {
+            $docNumerico = preg_replace('/\D/', '', (string) ($venta->cliente_documento ?? ''));
+            if (strlen($docNumerico) !== 11) {
+                return back()->with('error', 'Para facturar como Factura A el cliente debe tener CUIT válido de 11 dígitos.');
+            }
+        }
+
+        try {
+            DB::transaction(function () use ($venta, $tipoComprobante) {
+                $puntoVenta = $venta->puntoVenta ?: PuntoVenta::where('id_sucursal', $venta->id_sucursal)->where('activo', true)->first();
+                $tipoEmision = $puntoVenta?->tipo_emision;
+                $pvNumero = $puntoVenta ? $puntoVenta->numero : $venta->sucursal->id;
+                $remitoOriginal = $venta->comprobante;
+
+                $numeroFactura = $venta->sucursal->siguienteNumeroComprobante();
+                $nuevoComprobante = sprintf('%05d-%08d', $pvNumero, $numeroFactura);
+
+                $venta->update([
+                    'tipo_comprobante' => $tipoComprobante,
+                    'estado'           => 'completada',
+                    'tipo_emision'     => $tipoEmision,
+                    'punto_venta'      => $pvNumero,
+                    'numero_factura'   => $numeroFactura,
+                    'comprobante'      => $nuevoComprobante,
+                    'observaciones'    => trim(($venta->observaciones ?? '') . " [Facturado desde Remito {$remitoOriginal} el " . now()->format('d/m/Y H:i') . "]"),
+                ]);
+
+                // Emisión fiscal ARCA si corresponde
+                if ($puntoVenta && $tipoEmision === 'arca_wsfe') {
+                    $tipoCbteAfip = ($tipoComprobante === 'FACTURA_A') ? 1 : ($tipoComprobante === 'FACTURA_C' ? 11 : 6);
+                    $arcaService = app(ArcaWsfeService::class);
+                    $resArca = $arcaService->emitirFactura($puntoVenta, $venta, $tipoCbteAfip);
+                    $venta->update([
+                        'numero_factura'  => $resArca['numero_factura'],
+                        'comprobante'     => sprintf('%05d-%08d', $pvNumero, $resArca['numero_factura']),
+                        'cae'             => $resArca['cae'],
+                        'cae_vencimiento' => $resArca['cae_vencimiento'],
+                        'afip_qr'         => $resArca['afip_qr'],
+                        'datos_fiscales'  => $resArca,
+                    ]);
+                }
+            });
+
+            return redirect()->route('ventas.show', $venta->id)
+                ->with('success', "Remito facturado con éxito como {$venta->tipo_comprobante} #{$venta->comprobante}.");
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Error al facturar remito: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Exportación de ventas a CSV.
      */
     private function exportarCsv($query)
@@ -1300,5 +1553,87 @@ class VentaController extends Controller
             'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ]);
+    }
+
+    /**
+     * Retorna el payload JSON formateado para la Impresora Fiscal Hasar 2G.
+     */
+    public function hasarPayload(Venta $venta)
+    {
+        $venta->load(['items.producto', 'cliente', 'medioPago', 'puntoVenta', 'sucursal']);
+
+        $pv = $venta->puntoVenta;
+        $hasarIp = $pv?->configuracion['hasar_ip'] ?? '192.168.0.199';
+        $hasarPuerto = (int) ($pv?->configuracion['hasar_puerto'] ?? 80);
+
+        $letra = match(strtoupper((string) $venta->tipo_comprobante)) {
+            'FACTURA_A', 'NOTA_CREDITO_A' => 'A',
+            'FACTURA_C', 'NOTA_CREDITO_C' => 'C',
+            default => 'B',
+        };
+
+        $accion = $venta->isNotaCredito() ? 'nota_credito' : 'factura';
+
+        $cliente = $venta->cliente;
+        $doc = preg_replace('/\D/', '', (string) ($venta->cliente_documento ?? $cliente?->cuit ?? $cliente?->dni ?? ''));
+
+        $tipoDoc = 'DNI';
+        if (strlen($doc) === 11) {
+            $tipoDoc = 'CUIT';
+        }
+
+        $resp = 'C';
+        if ($letra === 'A') {
+            $resp = 'I';
+        }
+
+        $items = [];
+        foreach ($venta->items as $idx => $it) {
+            $items[] = [
+                'id'              => (string) ($it->id_producto ?? ($idx + 1)),
+                'codigo'          => (string) ($it->producto?->codigo_barra ?? $it->producto?->codigo ?? ('VAR' . ($idx + 1))),
+                'descripcion'     => $it->descripcion,
+                'cantidad'        => (float) $it->cantidad,
+                'precio_unitario' => (float) $it->precio_unitario,
+                'alicuota_iva'    => $venta->esExentoIva() ? 0.0 : 21.0,
+            ];
+        }
+
+        $pagosPayload = [];
+        if (!empty($venta->pagos) && is_array($venta->pagos)) {
+            foreach ($venta->pagos as $p) {
+                $pagosPayload[] = [
+                    'descripcion'  => $p['nombre'] ?? $p['medio_pago'] ?? 'Efectivo',
+                    'monto'        => (float) ($p['monto'] ?? 0),
+                    'codigo_forma' => $p['codigo_forma'] ?? null,
+                    'cupon'        => $p['cupon'] ?? $venta->numero_cupon ?? null,
+                ];
+            }
+        }
+        if (empty($pagosPayload)) {
+            $pagosPayload[] = [
+                'descripcion' => $venta->medio_pago_formateado,
+                'monto'       => (float) $venta->total,
+                'cupon'       => $venta->numero_cupon ?? null,
+            ];
+        }
+
+        $payload = [
+            'accion'           => $accion,
+            'hasar_ip'         => $hasarIp,
+            'hasar_puerto'     => $hasarPuerto,
+            'tipo_comprobante' => $letra,
+            'cliente'          => [
+                'nombre'           => $venta->cliente_nombre ?: 'CONSUMIDOR FINAL',
+                'tipo_documento'   => $tipoDoc,
+                'numero_documento' => $doc ?: '0',
+                'responsabilidad'  => $resp,
+                'domicilio'        => $cliente?->domicilio ?: 'Av. Fontana 123',
+            ],
+            'items'            => $items,
+            'pagos'            => $pagosPayload,
+        ];
+
+        return response()->json($payload);
     }
 }

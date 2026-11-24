@@ -464,14 +464,22 @@ por décadas, procesamiento de rendiciones y reversas ACE/R10/R02, imputación e
 | GET | `/ventas/{venta}` | `ventas.show` | `VentaController@show` | `auth` | Detalle de comprobante emitido |
 | GET | `/ventas/{venta}/imprimir` | `ventas.imprimir` | `VentaController@imprimir` | `auth` | Impresión de ticket térmico 80mm o factura A4 |
 | POST | `/ventas/{venta}/anular` | `ventas.anular` | `VentaController@anular` | `auth` | Anulación de venta, restitución de stock y anulación de crédito |
+| POST | `/ventas/{venta}/facturar-remito` | `ventas.facturar-remito` | `VentaController@facturarRemito` | `auth` | Facturación posterior de un Remito pendiente sin volver a descontar stock |
 
-### 5.2 Reglas de Negocio en Facturación (POS)
-1. **Obligatoriedad de Caja Abierta:** Antes de procesar cualquier venta, `VentaController@store` valida que exista una sesión de caja abierta para la sucursal activa (`CajaSesion::activaParaSucursal($sucursalId)`). Si no hay caja abierta o quedó una caja de jornada anterior sin cerrar, la venta se bloquea retornando HTTP 422 con flag `requiere_apertura = true`.
-2. **Prevención de Stock Negativo:**
-   - Todo producto con `controla_stock = true` es verificado contra `productos_stock` de la sucursal emisora.
-   - Si el stock disponible es menor a la cantidad solicitada, el sistema no emite la factura y alerta al operador.
+### 5.2 Reglas de Negocio en Facturación (POS) y Tipos de Comprobantes
+1. **Tipos de Comprobantes Disponibles:**
+   - **Factura B (`FACTURA_B`):** Comprobante predeterminado (por defecto). En Ushuaia/TDF aplica régimen exento Ley 19.640. Descuenta stock e impacta fiscalmente (ARCA WSFEv1 o Hasar).
+   - **Factura A (`FACTURA_A`):** Destinado a Responsables Inscriptos. Valida obligatoriamente CUIT de 11 dígitos y discrimina IVA 21%. Descuenta stock e impacta fiscalmente (ARCA WSFEv1 o Hasar).
+   - **Factura C (`FACTURA_C`):** Régimen simplificado / exento. Descuenta stock e impacta fiscalmente.
+   - **Remito (`REMITO`):** Comprobante de entrega o salida de mercadería. **SÍ descuenta stock** (crea movimiento de tipo `remito` en `productos_movimientos`), pero **NO se factura ni fiscaliza en ese momento**. Queda en estado `remito` para ser facturado con posterioridad mediante `ventas.facturar-remito` (el cual emite la factura fiscal sin descontar stock por segunda vez).
+   - **Presupuesto (`PRESUPUESTO`):** Cotización previa al cliente. **NO descuenta stock** (no bloquea por falta de inventario, `descuenta_stock = false` y no genera movimiento) y **NO se factura ni fiscaliza**. Queda en estado `presupuesto` y puede cargarse directamente en el facturador mediante `ventas.create?presupuesto_id={id}` para ser cobrado.
+   - **Nota de Crédito (`NOTA_CREDITO`, `NOTA_CREDITO_B`, `NOTA_CREDITO_A`):** Ajuste comercial o devolución. **Reingresa stock al inventario** (incrementa `productos_stock` y crea movimiento de tipo `devolucion`). Se fiscaliza ante ARCA/Hasar si el punto de venta lo requiere.
+2. **Obligatoriedad de Caja Abierta:** Antes de procesar cualquier venta o comprobante, `VentaController@store` valida que exista una sesión de caja abierta para la sucursal activa (`CajaSesion::activaParaSucursal($sucursalId)`). Si no hay caja abierta o quedó una caja de jornada anterior sin cerrar, la operación se bloquea retornando HTTP 422 con flag `requiere_apertura = true`.
+3. **Prevención de Stock Negativo:**
+   - En comprobantes que descuentan inventario (`FACTURA_B`, `FACTURA_A`, `FACTURA_C`, `REMITO`), todo producto con `controla_stock = true` es verificado contra `productos_stock` de la sucursal emisora.
+   - Si el stock disponible es menor a la cantidad solicitada, el sistema impide la emisión y alerta al operador.
    - **Corrección Interactiva por Recuento Físico:** El modal del facturador permite ingresar la cantidad real contada en góndola/mostrador mediante `ventas.ajuste-recuento-rapido`. Esto registra un `StockMovimiento` de tipo `recuento_fisico` y habilita la facturación en el instante.
-3. **Facturación con Crédito Personal:**
+4. **Facturación con Crédito Personal:**
    - Si el medio de pago es `credito_personal`, se exige cliente registrado.
    - Se valida que el cliente no esté suspendido ni exceda su límite de crédito disponible ni su cuota máxima.
    - Crea automáticamente el registro en `creditos` y sus `cuotas` correspondientes asociadas al número de factura.
@@ -693,6 +701,42 @@ por décadas, procesamiento de rendiciones y reversas ACE/R10/R02, imputación e
     "modelo": "SMH/PT-250F"
   }
   ```
+
+### 11.3 Servicio de Facturación Electrónica Digital ARCA (`ArcaFacturacionService`)
+Implementa la comunicación oficial con ARCA (ex-AFIP) mediante los web services **WSAA** (autenticación y tokens) y **WSFEv1** (facturación electrónica nacional) utilizando la biblioteca oficial `afipsdk/afip.php`:
+- **Ambientes Soportados:** Homologación (testing) y Producción según `$puntoVenta->configuracion['ambiente']`.
+- **Almacenamiento Seguro de Credenciales:**
+  - Carpeta protegida: `storage/app/arca/` (certificados `.crt` y claves privadas `.key` ignorados en `.gitignore`).
+  - Carpeta de caché de tokens de autorización: `storage/app/arca/tokens/`.
+  - Variables de entorno (`.env`): `ARCA_CUIT`, `ARCA_CERT_HOMO`, `ARCA_KEY_HOMO`, `ARCA_CERT_PROD`, `ARCA_KEY_PROD`.
+- **Método `emitirComprobante(PuntoVenta $pv, array $datos)`:**
+  1. Consulta el último número de comprobante emitido ante ARCA con `GetLastVoucher($pv->numero, $cbteTipo)`.
+  2. Determina el siguiente número (`$nuevoNro = $ultimoCbte + 1`).
+  3. Prepara el payload `FECAESolicitar` con fecha actual (`Ymd`), conceptos (Productos/Servicios), receptor (CUIT `80`, DNI `96`, Consumidor Final `99`), neto gravado, desglose de alícuotas IVA 21% (`Id => 5`) y total.
+  4. Ejecuta `CreateVoucher($payload)` ante ARCA.
+  5. Retorna estructura unificada:
+     ```php
+     [
+         'exito'              => true,
+         'numero_comprobante' => 124,
+         'punto_venta'        => 3,
+         'cae'                => '74421234567890',
+         'cae_vencimiento'    => '2026-11-27',
+         'ambiente'           => 'homologacion',
+         'cbte_tipo'          => 6,
+         'total'              => 121.00,
+         'fecha'              => '2026-11-17'
+     ]
+     ```
+
+### 11.4 Rutas de Facturación Digital (`FacturacionController`)
+
+| Método | URI | Name | Controlador@Método | Middleware | Descripción |
+|---|---|---|---|---|---|
+| POST | `/facturacion/emitir-digital` | `facturacion.emitir-digital` | `FacturacionController@emitirDigital` | `auth` | Emisión y autorización de comprobante digital ante ARCA (WSAA + WSFEv1) con retorno de CAE |
+| POST | `/facturacion/consultar-ultimo` | `facturacion.consultar-ultimo` | `FacturacionController@consultarUltimo` | `auth` | Consulta en tiempo real del último número emitido en ARCA para un punto de venta |
+
+- **Modal Operativo de Prueba:** En `sistema.puntos-venta.index`, los puntos de venta con `tipo_emision === 'arca_wsfe'` disponen del botón *"Probar Emisión"* que ejecuta una prueba controlada en Homologación por $121,00 a Consumidor Final y despliega en pantalla el número autorizado, el CAE de 14 dígitos y la fecha de vencimiento.
 ---
 
 ## 12. Módulo de Ventas, Facturación y Descuentos (`VentaController`)

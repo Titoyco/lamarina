@@ -235,302 +235,199 @@
         </div>
 
         <!-- =================================================================== -->
-        <!-- CUADRÍCULA VERTICAL EN 2 COLUMNAS (50% IZQUIERDA / 50% DERECHA)     -->
+        <!-- POS PRINCIPAL: LAYOUT A ANCHO COMPLETO (COMPACTO Y DESATURADO)     -->
         <!-- =================================================================== -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="space-y-3">
             
-            <!-- =============================================================== -->
-            <!-- COLUMNA IZQUIERDA (50%): CLIENTE + CARGA + GRILLA DE FACTURA     -->
-            <!-- =============================================================== -->
-            <div class="space-y-3">
+            <!-- 1. BARRA SUPERIOR UNIFICADA: COMPROBANTE + CLIENTE + ENTRADAS RÁPIDAS -->
+            <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-3 space-y-2.5">
                 
-                <!-- 1. Tarjeta de Datos del Cliente -->
-                <div class="bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm"
-                     :class="pasoActualFlujo === 1 ? 'ring-2 ring-amber-400 border-amber-400' : ''">
-                    <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-100 dark:border-slate-700/60">
-                        <span class="text-xs font-black uppercase text-slate-700 dark:text-slate-300 tracking-wider flex items-center gap-1.5">
-                            <span>👤</span>
-                            <span>1. Datos del Cliente</span>
-                            <span class="text-[9px] font-mono bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300 px-1.5 py-0.5 rounded">F2</span>
-                        </span>
+                <!-- Fila 1: Selector de Comprobante y Selector de Cliente -->
+                <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2.5 pb-2 border-b border-slate-100 dark:border-slate-700/60">
+                    
+                    <!-- Selector de Comprobante (Pills compactas) -->
+                    <div class="flex flex-wrap items-center gap-1.5 text-xs">
+                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-1">Comprobante:</span>
+                        
+                        <button type="button" 
+                                @click="seleccionarTipoComprobante('FACTURA_B')"
+                                :class="tipoComprobante === 'FACTURA_B' ? 'bg-indigo-600 text-white shadow-xs font-black' : 'bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600'"
+                                class="px-2.5 py-1 rounded-lg text-xs transition cursor-pointer">
+                            Factura B
+                        </button>
 
-                        <template x-if="clienteSeleccionado">
-                            <button type="button" @click="deseleccionarCliente()" 
-                                    class="text-xs font-bold text-rose-600 hover:text-rose-700 hover:underline flex items-center gap-1 transition cursor-pointer">
-                                <span>✕ Cambiar Cliente (F2)</span>
-                            </button>
-                        </template>
+                        <button type="button" 
+                                @click="seleccionarTipoComprobante('FACTURA_A')"
+                                :class="tipoComprobante === 'FACTURA_A' ? 'bg-indigo-600 text-white shadow-xs font-black' : 'bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600'"
+                                class="px-2.5 py-1 rounded-lg text-xs transition cursor-pointer">
+                            Factura A
+                        </button>
+
+                        <button type="button" 
+                                @click="seleccionarTipoComprobante('FACTURA_C')"
+                                :class="tipoComprobante === 'FACTURA_C' ? 'bg-indigo-600 text-white shadow-xs font-black' : 'bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600'"
+                                class="px-2.5 py-1 rounded-lg text-xs transition cursor-pointer">
+                            Factura C
+                        </button>
+
+                        <button type="button" 
+                                @click="seleccionarTipoComprobante('REMITO')"
+                                :class="tipoComprobante === 'REMITO' ? 'bg-amber-600 text-white shadow-xs font-black' : 'bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600'"
+                                class="px-2.5 py-1 rounded-lg text-xs transition cursor-pointer"
+                                title="Descuenta stock. Facturación posterior.">
+                            Remito
+                        </button>
+
+                        <button type="button" 
+                                @click="seleccionarTipoComprobante('PRESUPUESTO')"
+                                :class="tipoComprobante === 'PRESUPUESTO' ? 'bg-purple-600 text-white shadow-xs font-black' : 'bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600'"
+                                class="px-2.5 py-1 rounded-lg text-xs transition cursor-pointer"
+                                title="Cotización previa. No afecta stock ni se factura.">
+                            Presupuesto
+                        </button>
+
+                        <button type="button" 
+                                @click="seleccionarTipoComprobante('NOTA_CREDITO')"
+                                :class="tipoComprobante.includes('NOTA_CREDITO') ? 'bg-rose-600 text-white shadow-xs font-black' : 'bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600'"
+                                class="px-2.5 py-1 rounded-lg text-xs transition cursor-pointer"
+                                title="Reingreso de mercadería / Devolución.">
+                            Nota de Crédito
+                        </button>
+
+                        <span class="text-[10px] text-slate-400 font-mono hidden sm:inline ml-1" x-text="nombreComprobanteActual"></span>
                     </div>
 
-                    <!-- Selector de Tipo de Comprobante & Régimen Fiscal -->
-                    <div class="mb-2 p-2 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700">
-                        @if($esTdf)
-                            <div class="flex items-center justify-between text-xs">
-                                <div class="flex items-center gap-1.5 font-bold text-teal-800 dark:text-teal-300">
-                                    <span>🌴</span>
-                                    <span>Régimen Ushuaia (Ley 19.640):</span>
-                                    <span class="font-normal text-[11px] text-teal-700 dark:text-teal-400">Operaciones Exentas de IVA.</span>
-                                </div>
-                                <span class="px-2 py-0.5 rounded font-mono font-bold text-[10px] bg-teal-200/80 dark:bg-teal-900/80 text-teal-900 dark:text-teal-200 uppercase">
-                                    Factura B (Exenta)
-                                </span>
-                            </div>
-                        @else
-                            <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
-                                <div class="flex items-center gap-2">
-                                    <span class="text-[10px] font-bold text-slate-500 uppercase">Tipo Cbte:</span>
-                                    <div class="inline-flex rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 p-0.5">
-                                        <button type="button" 
-                                                @click="seleccionarTipoComprobante('FACTURA_B')"
-                                                :class="tipoComprobante === 'FACTURA_B' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'"
-                                                class="px-2.5 py-1 text-xs font-bold rounded-md transition cursor-pointer">
-                                            Factura B (Cons. Final)
-                                        </button>
-                                        <button type="button" 
-                                                @click="seleccionarTipoComprobante('FACTURA_A')"
-                                                :class="tipoComprobante === 'FACTURA_A' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'"
-                                                class="px-2.5 py-1 text-xs font-bold rounded-md transition cursor-pointer">
-                                            Factura A (Resp. Inscripto)
-                                        </button>
-                                    </div>
-                                </div>
-                                <template x-if="tipoComprobante === 'FACTURA_A'">
-                                    <div class="text-[11px] font-mono text-indigo-700 dark:text-indigo-300 flex items-center gap-2">
-                                        <span>Neto: <strong>$<span x-text="formatDinero(calcularTotal() / 1.21)"></span></strong></span>
-                                        <span>•</span>
-                                        <span>IVA 21%: <strong>$<span x-text="formatDinero(calcularTotal() - (calcularTotal() / 1.21))"></span></strong></span>
-                                    </div>
-                                </template>
-                            </div>
-                        @endif
-                    </div>
-
-                    <!-- CASO A: CONSUMIDOR FINAL (ESTADO POR DEFECTO) -->
-                    <template x-if="!clienteSeleccionado">
-                        <div class="space-y-2">
-                            <div class="p-2.5 bg-slate-50 dark:bg-slate-900/80 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between">
-                                <div class="flex items-center gap-2.5">
-                                    <div class="w-9 h-9 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center justify-center font-black text-xs shadow-inner">
-                                        CF
-                                    </div>
-                                    <div>
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-xs font-black text-slate-900 dark:text-white uppercase tracking-tight">CONSUMIDOR FINAL</span>
-                                            <span class="text-[9px] bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold px-1.5 py-0.5 rounded uppercase">
-                                                Por Defecto
-                                            </span>
-                                        </div>
-                                        <span class="text-[11px] text-slate-500 dark:text-slate-400"
-                                              x-text="esTrelew ? 'Busque y seleccione el cliente con ENTER para generar el crédito' : 'Cliente genérico de mostrador (Efectivo / Tarjeta)'"></span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Buscador Rápido de Cliente Registrado -->
-                            <div class="relative">
-                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                    </svg>
+                    <!-- Selector / Ficha de Cliente (Paso 1) -->
+                    <div class="flex items-center gap-2">
+                        <template x-if="!clienteSeleccionado">
+                            <div class="relative flex-grow sm:w-80">
+                                <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
+                                    <span>👤</span>
                                 </div>
                                 <input type="text" 
-                                       x-ref="clienteInput"
+                                       x-ref="clienteQueryInput"
                                        x-model="clienteQuery"
-                                       @input.debounce.200ms="buscarClientes()"
-                                       @keydown.down.prevent="moverSugerenciaCliente(1)"
-                                       @keydown.up.prevent="moverSugerenciaCliente(-1)"
+                                       @input.debounce.250ms="buscarClientes()"
                                        @keydown.enter.prevent="confirmarClienteEnter()"
-                                       placeholder="Buscar cliente por DNI, N° Cuenta o Apellido y Nombre y presione ENTER..."
-                                       class="w-full text-xs py-2 pl-9 pr-16 rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-inner"
-                                       autocomplete="off">
-                                <div class="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none">
-                                    <span class="text-[9px] bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-mono px-1.5 py-0.5 rounded font-bold">
-                                        ENTER
-                                    </span>
-                                </div>
-                                
-                                <!-- Dropdown de resultados de clientes -->
+                                       @keydown.arrow-down.prevent="moverSugerenciaCliente(1)"
+                                       @keydown.arrow-up.prevent="moverSugerenciaCliente(-1)"
+                                       placeholder="Buscar cliente (DNI, Nombre, CUIT)... [F2]"
+                                       class="w-full text-xs py-1.5 pl-8 pr-12 rounded-lg border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 shadow-2xs">
+                                <span class="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none text-[9px] font-mono font-bold text-slate-400">
+                                    F2
+                                </span>
+
+                                <!-- Dropdown de sugerencias de clientes -->
                                 <div x-show="sugerenciasClientes.length > 0"
                                      @click.away="sugerenciasClientes = []"
                                      class="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-50 max-h-56 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800"
                                      x-cloak>
-                                    <template x-for="(cli, idx) in sugerenciasClientes" :key="cli.id">
-                                        <button type="button" @click="seleccionarCliente(cli)"
-                                                @mouseenter="indiceSugerenciaCliente = idx"
-                                                :class="indiceSugerenciaCliente === idx ? 'bg-indigo-50 dark:bg-slate-800 ring-1 ring-inset ring-indigo-400' : 'hover:bg-indigo-50 dark:hover:bg-slate-800'"
-                                                class="w-full text-left p-2.5 transition flex items-center justify-between">
+                                    <template x-for="(cl, idx) in sugerenciasClientes" :key="cl.id">
+                                        <button type="button" 
+                                                @click="seleccionarCliente(cl)"
+                                                :class="{'bg-indigo-50 dark:bg-slate-800 font-bold': idx === indiceSugerenciaCliente}"
+                                                class="w-full text-left p-2.5 hover:bg-indigo-50 dark:hover:bg-slate-800 transition flex items-center justify-between text-xs">
                                             <div>
-                                                <div class="flex items-center gap-1.5">
-                                                    <span class="font-bold text-slate-800 dark:text-white text-xs" x-text="cli.nombre"></span>
-                                                    <span x-show="indiceSugerenciaCliente === idx" class="text-[9px] font-mono font-black text-indigo-600 dark:text-indigo-400">[ENTER]</span>
-                                                </div>
-                                                <span class="text-[10px] font-mono text-slate-400" x-text="'DNI: ' + cli.dni + ' | Cta: ' + (cli.nro_cuenta || '-')"></span>
+                                                <span class="font-bold text-slate-900 dark:text-white block" x-text="cl.nombre || cl.razon_social"></span>
+                                                <span class="text-[10px] font-mono text-slate-400" x-text="'DNI/CUIT: ' + (cl.dni || cl.cuit || '-')"></span>
                                             </div>
-                                            <span class="text-[9px] px-2 py-0.5 rounded font-black uppercase"
-                                                  :class="cli.suspendido ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'"
-                                                  x-text="cli.suspendido ? 'Suspendido' : 'Habilitado'">
-                                            </span>
+                                            <span class="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold">Seleccionar ↵</span>
                                         </button>
                                     </template>
                                 </div>
                             </div>
-                        </div>
-                    </template>
+                        </template>
 
-                    <!-- CASO B: CLIENTE REGISTRADO SELECCIONADO -->
-                    <template x-if="clienteSeleccionado">
-                        <div class="space-y-2">
-                            <div class="p-2.5 bg-indigo-50/80 dark:bg-indigo-950/40 rounded-xl border border-indigo-200 dark:border-indigo-800">
-                                <div class="flex items-start justify-between">
-                                    <div class="flex items-center gap-2.5">
-                                        <div class="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-xs shadow-sm">
-                                            👤
-                                        </div>
-                                        <div>
-                                            <button type="button" 
-                                                    @click="abrirFichaClienteModal()" 
-                                                    title="Haga clic para ver o editar la ficha del cliente en modal sin salir de la facturación" 
-                                                    class="text-xs font-black text-indigo-950 dark:text-indigo-200 hover:text-indigo-600 dark:hover:text-indigo-400 block uppercase tracking-tight hover:underline flex items-center gap-1 group text-left cursor-pointer">
-                                                <span x-text="clienteSeleccionado.nombre"></span>
-                                                <span class="text-[10px] text-indigo-500 opacity-70 group-hover:opacity-100">↗</span>
-                                            </button>
-                                            <div class="flex items-center gap-2 text-[11px] font-mono text-indigo-700 dark:text-indigo-400 mt-0.5">
-                                                <span x-text="'DNI: ' + clienteSeleccionado.dni"></span>
-                                                <template x-if="clienteSeleccionado.nro_cuenta">
-                                                    <span x-text="'• Cta: ' + clienteSeleccionado.nro_cuenta"></span>
-                                                </template>
-                                            </div>
-                                        </div>
+                        <template x-if="clienteSeleccionado">
+                            <div class="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 px-3 py-1 rounded-lg">
+                                <div>
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-xs font-black text-indigo-950 dark:text-indigo-200" x-text="clienteSeleccionado.nombre"></span>
+                                        <span class="text-[10px] font-mono bg-indigo-200 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-200 px-1 py-0.2 rounded font-bold" x-text="clienteSeleccionado.dni || 'Sin DNI'"></span>
                                     </div>
-
-                                    <!-- Badge de Estado Crediticio -->
                                     <template x-if="infoCredito">
-                                        <div>
-                                            <span x-show="infoCredito.estado_crediticio.habilitado" 
-                                                  class="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 shadow-2xs">
-                                                ✓ Habilitado
-                                            </span>
-                                            <span x-show="!infoCredito.estado_crediticio.habilitado && infoCredito.estado_crediticio.suspendido" 
-                                                  class="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-700 shadow-2xs">
-                                                ⛔ Suspendido
-                                            </span>
-                                            <span x-show="!infoCredito.estado_crediticio.habilitado && !infoCredito.estado_crediticio.suspendido && infoCredito.estado_crediticio.tiene_mora" 
-                                                  class="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700 shadow-2xs">
-                                                ⚠️ Con Mora
-                                            </span>
+                                        <div class="text-[10px] text-indigo-700 dark:text-indigo-300 flex items-center gap-2">
+                                            <span>Disponible: <strong>$<span x-text="formatDinero(infoCredito.estado_crediticio.limite_disponible)"></span></strong></span>
+                                            <span>•</span>
+                                            <span>Hasta <strong x-text="infoCredito.estado_crediticio.max_cuotas"></strong> cuotas</span>
                                         </div>
                                     </template>
                                 </div>
-
-                                <!-- Métricas Financieras del Cliente -->
-                                <template x-if="infoCredito">
-                                    <div class="mt-2 pt-2 border-t border-indigo-200/80 dark:border-indigo-900/60 grid grid-cols-3 gap-2 text-center">
-                                        <div class="bg-white/80 dark:bg-slate-900/80 p-1 rounded-lg border border-indigo-100 dark:border-indigo-900">
-                                            <span class="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase block">Disponible</span>
-                                            <span class="font-mono font-black text-emerald-700 dark:text-emerald-400 text-xs" 
-                                                  x-text="'$ ' + formatDinero(infoCredito.estado_crediticio.limite_disponible)"></span>
-                                        </div>
-                                        <div class="bg-white/80 dark:bg-slate-900/80 p-1 rounded-lg border border-indigo-100 dark:border-indigo-900">
-                                            <span class="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase block">Deuda Actual</span>
-                                            <span class="font-mono font-bold text-slate-700 dark:text-slate-300 text-xs" 
-                                                  x-text="'$ ' + formatDinero(infoCredito.estado_crediticio.deuda_acumulada)"></span>
-                                        </div>
-                                        <div class="bg-white/80 dark:bg-slate-900/80 p-1 rounded-lg border border-indigo-100 dark:border-indigo-900">
-                                            <span class="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase block">Tope Cuotas</span>
-                                            <span class="font-mono font-black text-indigo-700 dark:text-indigo-400 text-xs" 
-                                                  x-text="infoCredito.estado_crediticio.max_cuotas + ' pagos'"></span>
-                                        </div>
-                                    </div>
-                                </template>
+                                <button type="button" @click="deseleccionarCliente()" 
+                                        class="text-xs text-rose-600 hover:text-rose-800 font-bold p-1 hover:bg-rose-100 rounded transition cursor-pointer"
+                                        title="Cambiar cliente (F2)">
+                                    ✕
+                                </button>
                             </div>
-                        </div>
-                    </template>
+                        </template>
+                    </div>
+
                 </div>
 
-                <!-- 2. Barra de Carga Rápida: Monto Genérico VARIOS + Escáner -->
-                <div class="flex flex-col gap-2">
-                    <!-- Carga Rápida de Monto / Artículo Genérico VARIOS (Paso 3) -->
-                    <div :class="[
-                            esTrelew ? 'order-1 p-3 border-2' : 'order-2 p-2 border',
-                            pasoActualFlujo === 3 ? 'ring-2 ring-amber-400 border-amber-500' : 'border-amber-200 dark:border-amber-800/50'
-                         ]"
-                         class="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-slate-800 dark:to-slate-800/90 rounded-xl shadow-xs flex items-center justify-between gap-2 transition">
-                        <div class="flex items-center gap-2">
-                            <span class="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center font-black text-xs shrink-0 shadow-xs">
+                <!-- Fila 2: Inputs de Carga Rápida (Monto Genérico VARIOS F4 + Escáner Barcode F3) -->
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-2.5 items-center">
+                    
+                    <!-- Input 1: Carga Rápida de Monto VARIOS (F4) - 4 columnas -->
+                    <div class="md:col-span-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-slate-800 dark:to-slate-800/90 p-1.5 rounded-xl border border-amber-200 dark:border-amber-800/60 flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-1.5 shrink-0 pl-1">
+                            <span class="w-6 h-6 rounded-md bg-amber-500 text-white flex items-center justify-center font-black text-[11px] shadow-2xs">
                                 ⚡
                             </span>
-                            <div>
-                                <div class="flex items-center gap-1.5">
-                                    <span class="text-xs font-black uppercase text-amber-900 dark:text-amber-200 block leading-tight"
-                                          x-text="esTrelew ? '3. Cargar Monto del Crédito (VARIOS)' : 'Carga Rápida de Monto (VARIOS)'">
-                                    </span>
-                                    <span class="text-[9px] font-mono bg-amber-200/80 dark:bg-amber-900 text-amber-900 dark:text-amber-200 px-1.5 py-0.5 rounded font-bold">F4</span>
-                                </div>
-                                <span class="text-[10px] text-amber-700 dark:text-amber-400 leading-none"
-                                      x-text="esTrelew ? 'Ingrese el monto y presione ENTER para ir a Crédito Personal' : 'Venta de mostrador sin código'">
-                                </span>
+                            <div class="leading-none">
+                                <span class="text-[11px] font-black uppercase text-amber-900 dark:text-amber-200 block">Monto Varios</span>
+                                <span class="text-[9px] font-mono text-amber-700 dark:text-amber-400 font-bold">[F4]</span>
                             </div>
                         </div>
 
-                        <div class="flex items-center gap-1.5 flex-grow justify-end">
-                            <div class="relative" :class="esTrelew ? 'w-36 sm:w-44' : 'w-28'">
-                                <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center text-xs font-black text-slate-400">$</span>
+                        <div class="flex items-center gap-1 flex-grow justify-end">
+                            <div class="relative w-full max-w-[130px]">
+                                <span class="absolute inset-y-0 left-0 pl-2 flex items-center text-xs font-black text-slate-400">$</span>
                                 <input type="number" step="0.01" min="1" 
                                        x-ref="montoGenericoInput"
                                        x-model="montoGenerico" 
                                        @keydown.enter.prevent="procesarMontoGenericoEnter()"
                                        placeholder="0.00"
-                                       class="w-full text-sm font-mono font-black py-1.5 pl-6 pr-2 rounded-lg border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
+                                       class="w-full text-xs font-mono font-black py-1 pl-5 pr-1 rounded-lg border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:ring-1 focus:ring-amber-500">
                             </div>
                             <button type="button" @click="procesarMontoGenericoEnter()"
-                                    class="bg-amber-600 hover:bg-amber-700 text-white font-black text-xs py-1.5 px-3 rounded-lg shadow-xs transition uppercase shrink-0 cursor-pointer flex items-center gap-1">
-                                <span x-text="esTrelew ? 'Cargar ↵' : '+ Varios'"></span>
+                                    class="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs py-1 px-2.5 rounded-lg shadow-2xs transition uppercase shrink-0 cursor-pointer">
+                                <span>+ Varios</span>
                             </button>
                         </div>
                     </div>
 
-                    <!-- Input Escáner de Código de Barras / Búsqueda (Paso 2) -->
-                    <div :class="[
-                            esTrelew ? 'order-2' : 'order-1',
-                            pasoActualFlujo === 2 ? 'ring-2 ring-indigo-500 border-indigo-500' : 'border-indigo-500/40 dark:border-indigo-500/50'
-                         ]"
-                         class="bg-white dark:bg-slate-800 p-2.5 rounded-xl border-2 shadow-sm relative">
-                        <div class="flex items-center gap-2">
-                            <div class="relative flex-grow">
-                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-indigo-600 dark:text-indigo-400">
-                                    <svg class="w-4 h-4 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
-                                    </svg>
-                                </div>
-                                <input type="text" 
-                                       x-ref="barcodeInput"
-                                       x-model="barcodeQuery"
-                                       @keydown.enter.prevent="procesarCodigoBarra()"
-                                       @input.debounce.250ms="buscarProductosSugeridos()"
-                                       placeholder="Escanee código de barra o descripción..."
-                                       class="w-full text-xs font-mono py-2 pl-9 pr-24 rounded-lg border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500 shadow-inner"
-                                       autocomplete="off">
-                                
-                                <div class="absolute inset-y-0 right-0 pr-2 flex items-center space-x-1">
-                                    <span class="text-[9px] bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-mono px-1.5 py-0.5 rounded font-bold">
-                                        F3
-                                    </span>
-                                    <span class="text-[9px] bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-mono px-1.5 py-0.5 rounded font-bold">
-                                        ENTER
-                                    </span>
-                                </div>
+                    <!-- Input 2: Escáner de Código de Barras / Búsqueda de Productos (F3) - 8 columnas -->
+                    <div class="md:col-span-8 relative">
+                        <div class="relative flex items-center">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-indigo-600 dark:text-indigo-400">
+                                <svg class="w-4 h-4 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                                </svg>
                             </div>
-
-                            <button type="button" @click="procesarCodigoBarra()"
-                                    class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-2 px-3 rounded-lg shadow-sm transition flex items-center gap-1 uppercase shrink-0">
-                                <span>Agregar</span>
-                            </button>
+                            <input type="text" 
+                                   x-ref="barcodeInput"
+                                   x-model="barcodeQuery"
+                                   @keydown.enter.prevent="procesarCodigoBarra()"
+                                   @input.debounce.250ms="buscarProductosSugeridos()"
+                                   placeholder="Escanee código de barra o escriba descripción del producto... [F3]"
+                                   class="w-full text-xs font-mono py-1.5 pl-9 pr-24 rounded-lg border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500 shadow-inner"
+                                   autocomplete="off">
+                            
+                            <div class="absolute inset-y-0 right-0 pr-1.5 flex items-center space-x-1">
+                                <span class="text-[9px] bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-mono px-1.5 py-0.5 rounded font-bold">
+                                    F3
+                                </span>
+                                <button type="button" @click="procesarCodigoBarra()"
+                                        class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-1 px-2.5 rounded-md shadow-2xs transition uppercase shrink-0">
+                                    + Agregar
+                                </button>
+                            </div>
                         </div>
 
                         <!-- Dropdown de sugerencias de productos -->
                         <div x-show="sugerenciasProductos.length > 0"
                              @click.away="sugerenciasProductos = []"
-                             class="absolute left-2.5 right-2.5 top-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-50 max-h-56 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800"
+                             class="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-50 max-h-56 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800"
                              x-cloak>
                             <template x-for="prod in sugerenciasProductos" :key="prod.id">
                                 <button type="button" @click="intentarAgregarProducto(prod); sugerenciasProductos = []; barcodeQuery = ''; focusBarcode();"
@@ -547,441 +444,204 @@
                                                   x-text="prod.stock > 0 ? 'Stock: ' + prod.stock : '⚠️ SIN STOCK (0)'">
                                             </span>
                                         </template>
-                                        <template x-if="!prod.controla_stock">
-                                            <span class="text-[9px] font-bold text-slate-400">Sin límite</span>
-                                        </template>
                                     </div>
                                 </button>
                             </template>
                         </div>
                     </div>
-                </div>
 
-                <!-- 3. Tabla Compacta de Artículos Cargados en la Factura -->
-                <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-                    <div class="p-2.5 bg-slate-100 dark:bg-slate-900/90 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-                        <span class="text-xs font-black uppercase text-slate-700 dark:text-slate-300 tracking-wider flex items-center gap-1.5">
-                            <span>🛒</span>
-                            <span>Detalle de Factura (<span x-text="items.length"></span> artículos)</span>
-                        </span>
-                        <span class="text-xs text-slate-500 dark:text-slate-400 font-bold" x-text="items.length > 0 ? 'Total parcial: $ ' + formatDinero(calcularSubtotal()) : ''"></span>
-                    </div>
-
-                    <div class="overflow-x-auto min-h-[240px] max-h-[380px] overflow-y-auto">
-                        <table class="w-full text-left text-xs border-collapse">
-                            <thead>
-                                <tr class="bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 text-[10px] uppercase font-bold sticky top-0 z-10">
-                                    <th class="py-2 px-2 w-7">#</th>
-                                    <th class="py-2 px-2.5">Artículo / Descripción</th>
-                                    <th class="py-2 px-1 text-center w-24">Cantidad</th>
-                                    <th class="py-2 px-2 text-right w-22">P. Unitario</th>
-                                    <th class="py-2 px-1 text-center w-28">% Desc / Promo</th>
-                                    <th class="py-2 px-2.5 text-right w-26">Subtotal</th>
-                                    <th class="py-2 px-1 text-center w-14">Acción</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-100 dark:divide-slate-700/60 font-sans">
-                                <template x-for="(item, index) in items" :key="index">
-                                    <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-700/40 transition">
-                                        {{-- Nro --}}
-                                        <td class="py-2 px-2 font-mono text-[10px] text-slate-400" x-text="index + 1"></td>
-                                        
-                                        {{-- Descripción --}}
-                                        <td class="py-2 px-2.5">
-                                            <span class="font-bold text-slate-900 dark:text-white block text-xs" x-text="item.descripcion"></span>
-                                            <div class="flex items-center gap-1.5 text-[10px] font-mono text-slate-400">
-                                                <span x-text="'Cód: ' + (item.codigo || '-')"></span>
-                                                <template x-if="item.controla_stock">
-                                                    <span class="text-sky-600 dark:text-sky-400 font-bold" x-text="'(Stock: ' + item.stock + ')'"></span>
-                                                </template>
-                                            </div>
-                                        </td>
-
-                                        {{-- Cantidad con Botones Tablet +/- --}}
-                                        <td class="py-2 px-1 text-center">
-                                            <div class="inline-flex items-center border border-slate-300 dark:border-slate-600 rounded-lg overflow-hidden bg-white dark:bg-slate-900 shadow-2xs">
-                                                <button type="button" @click="cambiarCantidad(index, -1)" 
-                                                        class="px-2 py-0.5 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 font-black text-xs leading-none transition">
-                                                    -
-                                                </button>
-                                                <input type="number" min="0.01" step="1" 
-                                                       x-model.number="item.cantidad"
-                                                       @change="validarItem(index)"
-                                                       @keydown.enter.prevent="if (esTrelew && clienteSeleccionado) abrirModalCredito(); else focusBarcode();"
-                                                       class="w-10 text-center text-xs font-bold font-mono py-0.5 px-0 border-0 bg-transparent text-slate-900 dark:text-white focus:ring-0">
-                                                <button type="button" @click="cambiarCantidad(index, 1)" 
-                                                        class="px-2 py-0.5 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 font-black text-xs leading-none transition">
-                                                    +
-                                                </button>
-                                            </div>
-                                        </td>
-
-                                        {{-- Precio Unitario --}}
-                                        <td class="py-2 px-2 text-right">
-                                            <input type="number" step="0.01" min="0" 
-                                                   x-model.number="item.precio_unitario"
-                                                   @change="validarItem(index)"
-                                                   @keydown.enter.prevent="if (esTrelew && clienteSeleccionado) abrirModalCredito(); else focusBarcode();"
-                                                   class="w-20 text-right text-xs font-mono font-bold py-0.5 px-1 rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:ring-1 focus:ring-indigo-500">
-                                        </td>
-
-                                        {{-- % Desc --}}
-                                        <td class="py-2 px-1 text-center">
-                                            <div class="inline-flex items-center gap-1 justify-center">
-                                                <input type="number" min="0" max="100" step="1" 
-                                                       x-model.number="item.descuento_porcentaje"
-                                                       @input="validarItem(index)"
-                                                       placeholder="0"
-                                                       title="Porcentaje de descuento para este artículo"
-                                                       class="w-12 text-center text-xs font-mono font-bold py-0.5 px-0.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:ring-1 focus:ring-indigo-500">
-                                                <span class="text-[10px] font-bold text-slate-400">%</span>
-                                            </div>
-                                        </td>
-
-                                        {{-- Subtotal --}}
-                                        <td class="py-2 px-2.5 text-right font-mono tabular-nums text-xs">
-                                            <template x-if="item.descuento_porcentaje > 0">
-                                                <div class="leading-tight">
-                                                    <span class="font-black text-emerald-600 dark:text-emerald-400 block"
-                                                          x-text="'$ ' + formatDinero(calcularSubtotalItem(item))"></span>
-                                                    <span class="text-[10px] text-slate-400 line-through block"
-                                                          x-text="'$ ' + formatDinero(item.cantidad * item.precio_unitario)"></span>
-                                                    <span class="inline-block text-[9px] font-bold text-amber-600 dark:text-amber-400">
-                                                        -<span x-text="item.descuento_porcentaje"></span>%
-                                                    </span>
-                                                </div>
-                                            </template>
-                                            <template x-if="!item.descuento_porcentaje || item.descuento_porcentaje == 0">
-                                                <span class="font-black text-slate-900 dark:text-white"
-                                                      x-text="'$ ' + formatDinero(item.cantidad * item.precio_unitario)"></span>
-                                            </template>
-                                        </td>
-
-                                        {{-- Botón Quitar --}}
-                                        <td class="py-2 px-1 text-center">
-                                            <button type="button" @click="quitarItem(index)" 
-                                                    class="text-rose-500 hover:text-rose-700 p-1 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded transition text-xs font-bold cursor-pointer" 
-                                                    title="Eliminar fila">
-                                                ✕
-                                            </button>
-                                        </td>
-                                    </tr>
-                                </template>
-
-                                <template x-if="items.length === 0">
-                                    <tr>
-                                        <td colspan="7" class="py-12 text-center text-slate-400 dark:text-slate-500">
-                                            <div class="text-3xl mb-1.5">🛒</div>
-                                            <p class="font-bold text-xs">Factura vacía</p>
-                                            <p class="text-[11px] mt-0.5" x-text="esTrelew ? '1) Seleccione cliente (F2), 2) Escanee código (F3) o cargue monto con ENTER (F4).' : 'Escanee un código de barras (F3) o use la carga rápida de monto (F4).'"></p>
-                                        </td>
-                                    </tr>
-                                </template>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Barra de Atajos de Teclado -->
-                <div class="flex flex-wrap items-center justify-between text-[10px] text-slate-400 dark:text-slate-500 px-1 font-mono gap-2">
-                    <span>💡 [F2] Cliente</span>
-                    <span>💡 [F3] COD: BARRA</span>
-                    <span>💡 [F4] Monto</span>
-                    <span>💡 [F5] Crédito Personal</span>
-                    <span>💡 [F8] Facturar</span>
-                    <span>💡 [ENTER] Avanzar</span>
                 </div>
             </div>
 
-            <!-- =============================================================== -->
-            <!-- COLUMNA DERECHA (50%): MEDIO DE PAGO & VISOR REGISTRADORA TOTAL -->
-            <!-- =============================================================== -->
-            <div class="space-y-3">
-                
-                <!-- VISOR DIGITAL ESTILO REGISTRADORA / TABLET POS (GRAN TOTAL) -->
-                <div class="bg-slate-950 dark:bg-black rounded-2xl p-4 border-2 border-slate-800 shadow-xl flex flex-col justify-between relative overflow-hidden">
-                    <div class="flex items-center justify-between text-xs font-mono tracking-widest uppercase mb-1">
-                        <span class="text-emerald-500/90 font-bold flex items-center gap-1.5">
-                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                            <span>TOTAL FACTURADO</span>
-                        </span>
-                        <div class="flex items-center gap-2">
-                            <template x-if="calcularDescuentoTotalItems() > 0">
-                                <span class="text-amber-400 text-xs font-bold" x-text="'PROMOS: -$ ' + formatDinero(calcularDescuentoTotalItems())"></span>
-                            </template>
-                            <span class="text-slate-400 text-xs" x-text="'SUBTOTAL: $ ' + formatDinero(calcularSubtotal())"></span>
-                            <template x-if="calcularDescuento() > 0">
-                                <span class="text-emerald-400 text-xs font-bold" x-text="'DESC FACT: -$ ' + formatDinero(calcularDescuento())"></span>
-                            </template>
-                        </div>
-                    </div>
-
-                    <div class="flex items-baseline justify-between my-1">
-                        <span class="text-4xl sm:text-5xl lg:text-5xl xl:text-6xl font-mono font-black text-white dark:text-emerald-400 tracking-tight tabular-nums"
-                              x-text="'$ ' + formatDinero(calcularTotal())">
-                        </span>
-
-                        <template x-if="items.length > 0">
-                            <span class="text-xs font-mono font-bold text-slate-400" x-text="items.length + ' art.'"></span>
-                        </template>
-                    </div>
-
-                    <!-- Detalle de Financiación si es Crédito Personal -->
-                    <template x-if="esCredito">
-                        <div class="mt-2 pt-2 border-t border-slate-800 flex items-center justify-between text-xs font-mono">
-                            <span class="text-amber-400 font-bold" x-text="porcentajeInteresCuotas(cuotasPlan) > 0 ? ('Interés ' + porcentajeInteresCuotas(cuotasPlan) + '% (+$ ' + formatDinero(calcularRecargo()) + ')') : 'Sin interés (0%)'"></span>
-                            <span class="text-indigo-400 font-bold uppercase text-sm" x-text="cuotasPlan + ' x $' + formatDinero(calcularValorCuota(cuotasPlan))"></span>
-                        </div>
-                    </template>
+            <!-- 2. TABLA DE ARTÍCULOS A ANCHO COMPLETO (COMPACT DATA-GRID) -->
+            <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                <div class="p-2.5 bg-slate-100 dark:bg-slate-900/90 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                    <span class="text-xs font-black uppercase text-slate-700 dark:text-slate-300 tracking-wider flex items-center gap-1.5">
+                        <span>🛒</span>
+                        <span>Detalle de Factura (<span x-text="items.length"></span> artículos cargados)</span>
+                    </span>
+                    <span class="text-xs text-slate-500 dark:text-slate-400 font-bold" x-text="items.length > 0 ? 'Subtotal parcial: $ ' + formatDinero(calcularSubtotal()) : ''"></span>
                 </div>
 
-                <!-- TARJETA DE DESCUENTO / BONIFICACIÓN -->
-                <div class="bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-2">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-1.5">
-                            <span class="text-sm">🏷️</span>
-                            <span class="text-xs font-black uppercase text-slate-800 dark:text-slate-200 tracking-wider">
-                                Descuento / Bonificación en Factura
-                            </span>
-                        </div>
-                        <template x-if="calcularDescuento() > 0">
-                            <span class="text-xs font-mono font-black text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-700">
-                                - $ <span x-text="formatDinero(calcularDescuento())"></span>
-                            </span>
-                        </template>
-                    </div>
+                <div class="overflow-x-auto min-h-[220px] max-h-[380px] overflow-y-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 text-[10px] uppercase font-bold sticky top-0 z-10">
+                                <th class="py-1.5 px-2.5 w-8 text-center">#</th>
+                                <th class="py-1.5 px-3 w-32 font-mono">Código</th>
+                                <th class="py-1.5 px-3">Artículo / Descripción</th>
+                                <th class="py-1.5 px-2 text-center w-28">Cantidad</th>
+                                <th class="py-1.5 px-3 text-right w-28">P. Unitario</th>
+                                <th class="py-1.5 px-2 text-center w-24">% Desc.</th>
+                                <th class="py-1.5 px-3 text-right w-32">Subtotal</th>
+                                <th class="py-1.5 px-2 text-center w-12">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 dark:divide-slate-700/60 font-sans">
+                            <template x-for="(item, index) in items" :key="index">
+                                <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-700/40 transition">
+                                    {{-- # --}}
+                                    <td class="py-1.5 px-2.5 text-center font-mono text-[10px] text-slate-400" x-text="index + 1"></td>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
-                        <!-- Toggle Monto / Porcentaje -->
-                        <div class="sm:col-span-4 flex rounded-lg border border-slate-300 dark:border-slate-600 p-0.5 bg-slate-50 dark:bg-slate-900 text-xs">
-                            <button type="button" 
-                                    @click="tipoDescuentoManual = 'monto'; if (descuentoManual > calcularSubtotal()) descuentoManual = calcularSubtotal();"
-                                    :class="tipoDescuentoManual === 'monto' ? 'bg-indigo-600 text-white font-black shadow-xs' : 'text-slate-600 dark:text-slate-300'"
-                                    class="flex-1 py-1 px-2 rounded-md font-bold transition text-center cursor-pointer text-[11px]">
-                                $ Monto
-                            </button>
-                            <button type="button" 
-                                    @click="tipoDescuentoManual = 'porcentaje'; if (descuentoManual > 100) descuentoManual = 100;"
-                                    :class="tipoDescuentoManual === 'porcentaje' ? 'bg-indigo-600 text-white font-black shadow-xs' : 'text-slate-600 dark:text-slate-300'"
-                                    class="flex-1 py-1 px-2 rounded-md font-bold transition text-center cursor-pointer text-[11px]">
-                                % Porc.
-                            </button>
-                        </div>
+                                    {{-- Código --}}
+                                    <td class="py-1.5 px-3 font-mono text-[11px] text-slate-500 dark:text-slate-400" x-text="item.codigo || item.codigo_producto || '-'"></td>
 
-                        <!-- Input Valor Descuento -->
-                        <div class="sm:col-span-5 relative">
-                            <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center text-slate-400 font-bold text-xs" 
-                                  x-text="tipoDescuentoManual === 'monto' ? '$' : '%'"></span>
-                            <input type="number" 
-                                   step="0.01" 
-                                   min="0"
-                                   :max="tipoDescuentoManual === 'porcentaje' ? 100 : calcularSubtotal()"
+                                    {{-- Descripción --}}
+                                    <td class="py-1.5 px-3">
+                                        <div class="flex items-center gap-2">
+                                            <span class="font-bold text-slate-900 dark:text-white text-xs" x-text="item.descripcion"></span>
+                                            <template x-if="item.controla_stock">
+                                                <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-sky-100 dark:bg-sky-950 text-sky-800 dark:text-sky-300 border border-sky-200 dark:border-sky-800" x-text="'Stock: ' + item.stock"></span>
+                                            </template>
+                                        </div>
+                                    </td>
+
+                                    {{-- Cantidad (+ / -) --}}
+                                    <td class="py-1.5 px-2 text-center">
+                                        <div class="inline-flex items-center border border-slate-300 dark:border-slate-600 rounded-lg overflow-hidden bg-white dark:bg-slate-900 shadow-2xs">
+                                            <button type="button" @click="cambiarCantidad(index, -1)" 
+                                                    class="px-2 py-0.5 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 font-black text-xs transition">
+                                                -
+                                            </button>
+                                            <input type="number" min="0.01" step="1" 
+                                                   x-model.number="item.cantidad"
+                                                   @change="validarItem(index)"
+                                                   @keydown.enter.prevent="focusBarcode()"
+                                                   class="w-10 text-center text-xs font-bold font-mono py-0.5 px-0 border-0 bg-transparent text-slate-900 dark:text-white focus:ring-0">
+                                            <button type="button" @click="cambiarCantidad(index, 1)" 
+                                                    class="px-2 py-0.5 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 font-black text-xs transition">
+                                                +
+                                            </button>
+                                        </div>
+                                    </td>
+
+                                    {{-- Precio Unitario --}}
+                                    <td class="py-1.5 px-3 text-right">
+                                        <input type="number" step="0.01" min="0" 
+                                               x-model.number="item.precio_unitario"
+                                               @change="validarItem(index)"
+                                               class="w-24 text-right text-xs font-mono font-bold py-0.5 px-1.5 rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:ring-1 focus:ring-indigo-500">
+                                    </td>
+
+                                    {{-- % Descuento --}}
+                                    <td class="py-1.5 px-2 text-center">
+                                        <div class="inline-flex items-center gap-1 justify-center">
+                                            <input type="number" min="0" max="100" step="1" 
+                                                   x-model.number="item.descuento_porcentaje"
+                                                   @input="validarItem(index)"
+                                                   placeholder="0"
+                                                   class="w-12 text-center text-xs font-mono font-bold py-0.5 px-0.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:ring-1 focus:ring-indigo-500">
+                                            <span class="text-[10px] font-bold text-slate-400">%</span>
+                                        </div>
+                                    </td>
+
+                                    {{-- Subtotal --}}
+                                    <td class="py-1.5 px-3 text-right font-mono tabular-nums text-xs">
+                                        <template x-if="item.descuento_porcentaje > 0">
+                                            <div>
+                                                <span class="font-black text-emerald-600 dark:text-emerald-400 block"
+                                                      x-text="'$ ' + formatDinero(calcularSubtotalItem(item))"></span>
+                                                <span class="text-[10px] text-slate-400 line-through block"
+                                                      x-text="'$ ' + formatDinero(item.cantidad * item.precio_unitario)"></span>
+                                            </div>
+                                        </template>
+                                        <template x-if="!item.descuento_porcentaje || item.descuento_porcentaje == 0">
+                                            <span class="font-black text-slate-900 dark:text-white"
+                                                  x-text="'$ ' + formatDinero(item.cantidad * item.precio_unitario)"></span>
+                                        </template>
+                                    </td>
+
+                                    {{-- Quitar fila --}}
+                                    <td class="py-1.5 px-2 text-center">
+                                        <button type="button" @click="quitarItem(index)" 
+                                                class="text-rose-500 hover:text-rose-700 p-1 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded transition text-xs font-bold cursor-pointer" 
+                                                title="Eliminar fila">
+                                            ✕
+                                        </button>
+                                    </td>
+                                </tr>
+                            </template>
+
+                            <template x-if="items.length === 0">
+                                <tr>
+                                    <td colspan="8" class="py-10 text-center text-slate-400 dark:text-slate-500">
+                                        <div class="text-2xl mb-1">🛒</div>
+                                        <p class="font-bold text-xs">Factura vacía</p>
+                                        <p class="text-[11px] mt-0.5 text-slate-400">Escanee un código de barras (F3) o cargue un monto rápido en VARIOS (F4).</p>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 3. BARRA INFERIOR DE TOTALES Y FACTURACIÓN (FULL WIDTH SUMMARY BAR) -->
+            <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-3">
+                <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                    
+                    <!-- Lado Izquierdo: Descuento General Manual y Promos -->
+                    <div class="flex flex-wrap items-center gap-3 text-xs w-full md:w-auto">
+                        <div class="flex items-center gap-2 bg-slate-50 dark:bg-slate-900 p-1.5 rounded-lg border border-slate-200 dark:border-slate-700">
+                            <span class="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase">🏷️ Desc. Factura:</span>
+                            
+                            <div class="flex rounded border border-slate-300 dark:border-slate-600 overflow-hidden text-[10px]">
+                                <button type="button" 
+                                        @click="tipoDescuentoManual = 'monto'"
+                                        :class="tipoDescuentoManual === 'monto' ? 'bg-indigo-600 text-white font-bold' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300'"
+                                        class="px-2 py-0.5">
+                                    $
+                                </button>
+                                <button type="button" 
+                                        @click="tipoDescuentoManual = 'porcentaje'"
+                                        :class="tipoDescuentoManual === 'porcentaje' ? 'bg-indigo-600 text-white font-bold' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300'"
+                                        class="px-2 py-0.5">
+                                    %
+                                </button>
+                            </div>
+
+                            <input type="number" step="0.01" min="0"
                                    x-model.number="descuentoManual"
                                    placeholder="0.00"
-                                   class="w-full pl-7 pr-3 py-1.5 rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-right font-mono font-bold text-xs focus:ring-2 focus:ring-indigo-500 shadow-xs">
+                                   class="w-20 text-right text-xs font-mono font-bold py-0.5 px-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
+
+                            <button type="button" @click="descuentoManual = 0" x-show="descuentoManual > 0" class="text-rose-500 font-bold px-1 cursor-pointer" title="Quitar descuento">✕</button>
                         </div>
 
-                        <!-- Chips rápidos / Botón Limpiar -->
-                        <div class="sm:col-span-3 flex items-center justify-end gap-1">
-                            <template x-if="tipoDescuentoManual === 'porcentaje'">
-                                <div class="flex items-center gap-1">
-                                    <button type="button" @click="descuentoManual = 5" class="px-1.5 py-1 text-[10px] font-bold rounded bg-slate-100 hover:bg-indigo-50 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 cursor-pointer">5%</button>
-                                    <button type="button" @click="descuentoManual = 10" class="px-1.5 py-1 text-[10px] font-bold rounded bg-slate-100 hover:bg-indigo-50 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 cursor-pointer">10%</button>
-                                </div>
-                            </template>
-                            <template x-if="tipoDescuentoManual === 'monto'">
-                                <div class="flex items-center gap-1">
-                                    <button type="button" @click="descuentoManual = 5000" class="px-1.5 py-1 text-[10px] font-bold rounded bg-slate-100 hover:bg-indigo-50 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 cursor-pointer">$5k</button>
-                                    <button type="button" @click="descuentoManual = 10000" class="px-1.5 py-1 text-[10px] font-bold rounded bg-slate-100 hover:bg-indigo-50 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 cursor-pointer">$10k</button>
-                                </div>
-                            </template>
-                            <button type="button" @click="descuentoManual = 0" 
-                                    x-show="descuentoManual > 0"
-                                    class="p-1 text-slate-400 hover:text-rose-600 transition cursor-pointer" 
-                                    title="Quitar descuento">
-                                ✕
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                        <template x-if="calcularDescuentoTotalItems() > 0">
+                            <span class="text-amber-600 dark:text-amber-400 font-bold text-xs font-mono">
+                                Promos ítems: -$ <span x-text="formatDinero(calcularDescuentoTotalItems())"></span>
+                            </span>
+                        </template>
 
-                <!-- TARJETA DE MEDIOS DE PAGO (BOTONES GRANDES TABLET TOUCH CONSOLIDADOS) -->
-                <div class="bg-white dark:bg-slate-800 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
-                    <div class="flex items-center justify-between pb-1.5 border-b border-slate-100 dark:border-slate-700/60">
-                        <span class="text-xs font-black uppercase text-slate-700 dark:text-slate-300 tracking-wider flex items-center gap-1.5">
-                            <span>💳</span>
-                            <span>Seleccionar Medio de Pago</span>
+                        <span class="text-slate-400 font-mono text-[11px]">
+                            [F8] Facturar | [ENTER] Continuar
                         </span>
-                        <span class="text-[10px] text-slate-400 font-mono font-bold uppercase" x-text="medioPagoActual ? medioPagoActual.nombre : medioPago.replace('_', ' ')"></span>
                     </div>
 
-                    <!-- Botones Dinámicos de Medios de Pago desde la BD consolidada -->
-                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                        @foreach($mediosPago as $mp)
-                            @php
-                                $isCredito = ($mp->tipo_base === 'credito' || $mp->codigo === 'credito_personal');
-                                $icon = $mp->icono ?: ($isCredito ? '📄' : ($mp->tipo_base === 'efectivo' ? '💵' : '💳'));
-                            @endphp
-                            <button type="button" 
-                                    @click="seleccionarMedioPago(@js($mp))"
-                                    @if($isCredito)
-                                        :disabled="!clienteSeleccionado"
-                                        :class="{
-                                            'bg-indigo-600 text-white font-black border-indigo-600 shadow-md ring-2 ring-indigo-400/50': medioPago === '{{ $mp->codigo }}',
-                                            'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100': medioPago !== '{{ $mp->codigo }}' && clienteSeleccionado,
-                                            'opacity-40 cursor-not-allowed bg-slate-100 dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800': !clienteSeleccionado
-                                        }"
-                                        title="Habilitado al seleccionar cliente registrado"
-                                    @else
-                                        :class="medioPago === '{{ $mp->codigo }}' 
-                                            ? 'bg-slate-900 dark:bg-indigo-600 text-white font-black border-slate-900 dark:border-indigo-600 shadow-md ring-2 ring-indigo-400/50' 
-                                            : 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'"
-                                    @endif
-                                    class="py-3 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition min-h-[58px] active:scale-98">
-                                <span class="text-xl">{{ $icon }}</span>
-                                <div class="text-left">
-                                    <span class="tracking-tight uppercase font-black block leading-tight">{{ $mp->nombre }}</span>
-                                    @if($isCredito)
-                                        <span class="text-[9px] block opacity-80" x-text="clienteSeleccionado ? 'Habilitado' : 'Requiere Cliente'"></span>
-                                    @elseif($mp->recargo_porcentaje > 0)
-                                        <span class="text-[9px] block text-amber-500 font-mono">+{{ (float)$mp->recargo_porcentaje }}% rec.</span>
-                                    @elseif($mp->descuento_porcentaje > 0)
-                                        <span class="text-[9px] block text-emerald-500 font-mono">-{{ (float)$mp->descuento_porcentaje }}% desc.</span>
-                                    @endif
-                                </div>
-                            </button>
-                        @endforeach
+                    <!-- Lado Derecho: Gran Total y Botón Principal Facturar -->
+                    <div class="flex items-center gap-4 w-full md:w-auto justify-end">
+                        <div class="text-right">
+                            <span class="text-[10px] text-slate-500 uppercase font-black tracking-wider block">TOTAL A FACTURAR</span>
+                            <span class="text-3xl sm:text-4xl font-mono font-black text-slate-900 dark:text-emerald-400 tabular-nums leading-none"
+                                  x-text="'$ ' + formatDinero(calcularTotal())">
+                            </span>
+                        </div>
+
+                        <button type="button" 
+                                x-ref="btnFacturarPrincipal"
+                                @click="abrirModalPago()"
+                                :disabled="items.length === 0 || procesando"
+                                :class="items.length === 0 ? 'bg-slate-200 dark:bg-slate-700 text-slate-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg active:scale-98 cursor-pointer'"
+                                class="py-3 px-6 rounded-xl font-black text-sm uppercase tracking-wide transition flex items-center gap-2 shrink-0">
+                            <span x-text="procesando ? 'Procesando...' : (esPresupuesto ? 'EMITIR PRESUPUESTO' : (esRemito ? 'EMITIR REMITO' : (esNotaCredito ? 'EMITIR NOTA CRÉDITO' : 'FACTURAR (F8 / ENTER)')))"></span>
+                            <span class="text-[10px] bg-black/20 text-white px-1.5 py-0.5 rounded font-mono">↵</span>
+                        </button>
                     </div>
 
-                    <!-- AVISO DE AUTORIZACIÓN DE CRÉDITO PERSONAL -->
-                    <template x-if="esCredito && clienteSeleccionado">
-                        <div class="p-2.5 rounded-xl border flex items-center justify-between text-xs"
-                             :class="!creditoAutorizado
-                                 ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-300 dark:border-indigo-700 text-indigo-900 dark:text-indigo-200'
-                                 : (autorizadoPorVendedor 
-                                     ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200' 
-                                     : 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200')">
-                            <div class="flex items-center gap-2">
-                                <span class="text-base" x-text="!creditoAutorizado ? '📄' : (autorizadoPorVendedor ? '⚠️' : '✓')"></span>
-                                <div>
-                                    <span class="font-black uppercase tracking-tight block" 
-                                          x-text="!creditoAutorizado ? '4. Verificar Estado de Cuenta / Crédito Personal' : (autorizadoPorVendedor ? 'Crédito Autorizado por Vendedor (Excepción)' : 'Crédito Personal Verificado y Autorizado')"></span>
-                                    <span class="text-[11px] opacity-80" 
-                                          x-text="'Margen disponible: $' + formatDinero(infoCredito?.detalle_compras?.limite_disponible || infoCredito?.estado_crediticio?.limite_disponible || 0)"></span>
-                                </div>
-                            </div>
-                            <button type="button" @click="abrirModalCredito()" 
-                                    class="text-xs font-bold text-indigo-700 dark:text-indigo-300 underline hover:opacity-80 cursor-pointer flex items-center gap-1">
-                                <span x-text="creditoAutorizado ? 'Ver Estado / Reautorizar' : 'Abrir Crédito (F5)'"></span>
-                            </button>
-                        </div>
-                    </template>
-
-                    <!-- SELECTOR DE CUOTAS (SI ES CRÉDITO PERSONAL) -->
-                    <template x-if="esCredito && clienteSeleccionado">
-                        <div class="pt-2.5 border-t border-slate-200 dark:border-slate-700 space-y-2">
-                            <div class="flex items-center justify-between">
-                                <span class="text-xs font-black uppercase text-indigo-900 dark:text-indigo-300 flex items-center gap-1.5">
-                                    <span>Plan de Cuotas a Crédito</span>
-                                    <span class="text-[9px] font-mono bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded font-bold">Teclas 1-4</span>
-                                </span>
-                                <span class="text-xs font-bold text-slate-500 dark:text-slate-400" 
-                                      x-text="'Interés lote: ' + tasaInteres + '% por cuota' + (primeraSinInteres ? ' (1 pago sin interés)' : '')">
-                                </span>
-                            </div>
-
-                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                <template x-for="n in [1, 2, 3, 4]" :key="n">
-                                    <button type="button" @click="seleccionarCuotaPlan(n)"
-                                            :disabled="infoCredito && n > infoCredito.estado_crediticio.max_cuotas"
-                                            :class="{
-                                                'bg-indigo-700 text-white font-black border-indigo-800 shadow-md ring-2 ring-indigo-400': cuotasPlan === n,
-                                                'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 hover:border-indigo-300': cuotasPlan !== n,
-                                                'opacity-30 cursor-not-allowed': infoCredito && n > infoCredito.estado_crediticio.max_cuotas
-                                            }"
-                                            class="p-2.5 rounded-xl border text-left transition flex flex-col justify-between active:scale-98 min-h-[64px]">
-                                        <div class="flex items-center justify-between">
-                                            <span class="text-xs font-black uppercase" x-text="n + (n === 1 ? ' Pago' : ' Pagos')"></span>
-                                            <span x-show="cuotasPlan === n" class="text-white text-xs font-bold">✓</span>
-                                        </div>
-                                        <div class="mt-1">
-                                            <span class="text-xs font-mono font-bold tabular-nums block"
-                                                  :class="cuotasPlan === n ? 'text-amber-300' : 'text-indigo-600 dark:text-indigo-400'"
-                                                  x-text="'$ ' + formatDinero(calcularValorCuota(n))">
-                                            </span>
-                                            <span class="text-[9px] block text-slate-400" x-text="(n > 1 ? '/ cuota' : 'Total') + ' · ' + porcentajeInteresCuotas(n) + '%'"></span>
-                                        </div>
-                                    </button>
-                                </template>
-                            </div>
-                        </div>
-                    </template>
-
-                    <!-- PANEL DE COBRO EN EFECTIVO RÁPIDO & VUELTO (SI ES EFECTIVO) -->
-                    <template x-if="esEfectivo">
-                        <div class="pt-2.5 border-t border-slate-200 dark:border-slate-700 space-y-2">
-                            <div class="flex items-center justify-between text-xs">
-                                <span class="font-bold text-slate-700 dark:text-slate-300 uppercase">Cálculo Rápido de Vuelto:</span>
-                                <button type="button" @click="pagaCon = calcularTotal()" class="text-xs font-bold text-emerald-600 hover:underline">
-                                    Importe Exacto
-                                </button>
-                            </div>
-
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                <div>
-                                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Paga con:</label>
-                                    <div class="relative">
-                                        <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center text-xs font-black text-slate-400">$</span>
-                                        <input type="number" step="100" 
-                                               x-model.number="pagaCon" 
-                                               @keydown.enter.prevent="abrirModalPago()"
-                                               placeholder="0.00"
-                                               class="w-full text-sm font-mono font-bold py-1.5 pl-6 pr-2 rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
-                                    </div>
-                                </div>
-
-                                <div class="bg-slate-50 dark:bg-slate-900 p-2 rounded-lg border border-slate-200 dark:border-slate-700 flex flex-col justify-between">
-                                    <span class="text-[10px] font-bold text-slate-500 uppercase">Vuelto a entregar:</span>
-                                    <span class="font-mono font-black text-base tabular-nums"
-                                          :class="(pagaCon - calcularTotal()) >= 0 ? 'text-emerald-600' : 'text-slate-400'"
-                                          x-text="'$ ' + formatDinero(Math.max(0, pagaCon - calcularTotal()))">
-                                    </span>
-                                </div>
-                            </div>
-
-                            <!-- Botones rápidos de billetes comunes -->
-                            <div class="flex flex-wrap gap-1 pt-1">
-                                <button type="button" @click="pagaCon = 2000" class="px-2 py-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 rounded text-[10px] font-bold font-mono">$2.000</button>
-                                <button type="button" @click="pagaCon = 5000" class="px-2 py-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 rounded text-[10px] font-bold font-mono">$5.000</button>
-                                <button type="button" @click="pagaCon = 10000" class="px-2 py-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 rounded text-[10px] font-bold font-mono">$10.000</button>
-                                <button type="button" @click="pagaCon = 20000" class="px-2 py-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 rounded text-[10px] font-bold font-mono">$20.000</button>
-                            </div>
-                        </div>
-                    </template>
                 </div>
-
-                <!-- BOTÓN PRINCIPAL DE COBRO (TABLET ACCIÓN PRIMARIA GIGANTE) -->
-                <div>
-                    <button type="button" 
-                            x-ref="btnFacturarPrincipal"
-                            @click="abrirModalPago()"
-                            :disabled="items.length === 0 || procesando"
-                            :class="[
-                                items.length === 0 
-                                    ? 'bg-slate-200 dark:bg-slate-700 cursor-not-allowed text-slate-400 dark:text-slate-500' 
-                                    : (esCredito 
-                                        ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl hover:shadow-indigo-500/25 active:scale-98 focus:ring-4 focus:ring-amber-400' 
-                                        : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xl hover:shadow-emerald-500/25 active:scale-98 focus:ring-4 focus:ring-amber-400'),
-                                pasoActualFlujo === 5 ? 'ring-4 ring-amber-400' : ''
-                            ]"
-                            class="w-full py-4 px-4 rounded-2xl font-black text-base sm:text-lg uppercase tracking-wide transition flex items-center justify-center gap-2 cursor-pointer">
-                        <span x-text="procesando ? 'Procesando...' : (esCredito ? (creditoAutorizado ? '5. Facturar y Generar Pagaré' : '4. Ir a Crédito Personal') : 'PAGAR / COBRAR AHORA')"></span>
-                        <span x-show="!procesando" class="font-mono text-sm sm:text-base font-bold" x-text="'($ ' + formatDinero(calcularTotal()) + ')'"></span>
-                        <span x-show="!procesando && items.length > 0" class="text-xs font-mono px-2 py-0.5 rounded bg-black/25 text-amber-300" x-text="esCredito ? (creditoAutorizado ? 'ENTER / F8' : 'ENTER / F5') : 'ENTER'"></span>
-                    </button>
-                </div>
-
             </div>
+
         </div>
 
         <!-- =================================================================== -->
@@ -1298,102 +958,224 @@
         </div>
 
         <!-- =================================================================== -->
-        <!-- MODAL 2: COBRO RÁPIDO EFECTIVO / TARJETA                            -->
+        <!-- MODAL 2: LIQUIDACIÓN DE COBRO MULTIPAGO & CUPONES DE TARJETA        -->
         <!-- =================================================================== -->
         <div x-show="modalCobro" 
-             class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4"
+             class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4"
+             @keydown.window.escape="modalCobro = false"
              x-cloak>
-            <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-4"
+            <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-2xl w-full p-4 sm:p-5 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-3 animate-in fade-in zoom-in-95 duration-150 my-auto"
                  @click.away="modalCobro = false">
                 
-                <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-3">
-                    <h3 class="text-base font-black text-slate-900 dark:text-white uppercase flex items-center gap-2">
-                        <span x-text="medioPagoActual ? (medioPagoActual.icono + ' Cobro con ' + medioPagoActual.nombre) : '💳 Cobro de Factura'"></span>
-                    </h3>
-                    <button type="button" @click="modalCobro = false" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
-                </div>
-
-                <div class="text-center py-2">
-                    <span class="text-xs text-slate-500 uppercase font-bold block">Total a Pagar</span>
-                    <span class="text-3xl font-black text-slate-900 dark:text-white font-mono tabular-nums"
-                          x-text="'$ ' + formatDinero(calcularTotal())">
-                    </span>
-                    <template x-if="medioPagoActual && Number(medioPagoActual.recargo_porcentaje) > 0">
-                        <span class="text-[10px] text-amber-500 font-mono block mt-1" x-text="'Incluye recargo del ' + medioPagoActual.recargo_porcentaje + '% (+$ ' + formatDinero(calcularRecargo()) + ')'"></span>
-                    </template>
-                    <template x-if="medioPagoActual && Number(medioPagoActual.descuento_porcentaje) > 0">
-                        <span class="text-[10px] text-emerald-500 font-mono block mt-1" x-text="'Incluye descuento del ' + medioPagoActual.descuento_porcentaje + '% (-$ ' + formatDinero(calcularDescuento()) + ')'"></span>
-                    </template>
-                </div>
-
-                <!-- Resumen Fiscal de Comprobante en Modal Cobro -->
-                <div class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs">
-                    <span class="text-slate-500 uppercase font-bold text-[10px]">Comprobante a emitir:</span>
-                    @if($esTdf)
-                        <span class="font-bold font-mono text-teal-700 dark:text-teal-300">FACTURA B (Exento Ley 19.640)</span>
-                    @else
-                        <span class="font-bold font-mono" 
-                              :class="tipoComprobante === 'FACTURA_A' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-800 dark:text-slate-200'"
-                              x-text="tipoComprobante === 'FACTURA_A' ? 'FACTURA A (IVA 21% Discriminado)' : 'FACTURA B (IVA Incluido)'">
+                <!-- Encabezado del Modal -->
+                <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2.5">
+                    <div class="flex items-center gap-2">
+                        <span class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-black text-sm shadow-xs">
+                            💳
                         </span>
-                    @endif
-                </div>
-
-                <!-- Campo de referencia / comprobante si el medio de pago lo requiere -->
-                <template x-if="medioPagoActual && medioPagoActual.requiere_referencia">
-                    <div class="space-y-1.5 bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase">N° Cupón / Comprobante / Transacción:</label>
-                        <input type="text" 
-                               x-model="referenciaPago" 
-                               @keydown.enter.prevent="enviarVenta()"
-                               placeholder="Ej: Cupón 123456 / Ref. 987654 / Cheque N°..." 
-                               class="w-full text-xs font-mono font-bold py-1.5 px-3 rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500">
-                    </div>
-                </template>
-
-                <!-- Calculador de Vuelto si es Efectivo -->
-                <template x-if="esEfectivo">
-                    <div class="space-y-3 bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Paga con:</label>
-                            <input type="number" step="100" 
-                                   x-model.number="pagaCon" 
-                                   @keydown.enter.prevent="enviarVenta()"
-                                   placeholder="0.00"
-                                   class="w-full text-base font-mono font-bold py-1.5 px-3 rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
+                            <h3 class="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                                Liquidación y Medios de Pago
+                            </h3>
+                            <div class="flex items-center gap-2 text-[10px] text-slate-500 font-mono mt-0.5">
+                                <span class="font-bold text-indigo-600 dark:text-indigo-400" x-text="nombreComprobanteActual"></span>
+                                <span>•</span>
+                                <span x-text="clienteSeleccionado ? clienteSeleccionado.nombre : 'CONSUMIDOR FINAL'"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" @click="modalCobro = false" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg p-1 cursor-pointer">✕</button>
+                </div>
+
+                <!-- Visor Métrico de Cobro (3 Tarjetas Compactas) -->
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="bg-slate-50 dark:bg-slate-800/80 p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-center">
+                        <span class="text-[9px] font-black uppercase text-slate-500 block">Total a Pagar</span>
+                        <span class="text-base sm:text-lg font-mono font-black text-slate-900 dark:text-white tabular-nums block"
+                              x-text="'$ ' + formatDinero(calcularTotal())"></span>
+                    </div>
+
+                    <div class="bg-indigo-50 dark:bg-indigo-950/40 p-2 rounded-xl border border-indigo-200 dark:border-indigo-800 text-center">
+                        <span class="text-[9px] font-black uppercase text-indigo-700 dark:text-indigo-300 block">Total Cubierto</span>
+                        <span class="text-base sm:text-lg font-mono font-black text-indigo-700 dark:text-indigo-400 tabular-nums block"
+                              x-text="'$ ' + formatDinero(calcularTotalCubierto())"></span>
+                    </div>
+
+                    <div class="p-2 rounded-xl border text-center"
+                         :class="{
+                             'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800': calcularSaldoRestante() === 0 && calcularVueltoModal() === 0,
+                             'bg-rose-50 dark:bg-rose-950/40 border-rose-300 dark:border-rose-800': calcularSaldoRestante() > 0,
+                             'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800': calcularVueltoModal() > 0
+                         }">
+                        <template x-if="calcularSaldoRestante() > 0">
+                            <div>
+                                <span class="text-[9px] font-black uppercase text-rose-700 dark:text-rose-300 block">Faltan Cubrir</span>
+                                <span class="text-base sm:text-lg font-mono font-black text-rose-600 dark:text-rose-400 tabular-nums block"
+                                      x-text="'$ ' + formatDinero(calcularSaldoRestante())"></span>
+                            </div>
+                        </template>
+                        <template x-if="calcularSaldoRestante() === 0 && calcularVueltoModal() === 0">
+                            <div>
+                                <span class="text-[9px] font-black uppercase text-emerald-700 dark:text-emerald-300 block">Estado</span>
+                                <span class="text-xs sm:text-sm font-black text-emerald-600 dark:text-emerald-400 mt-1 block">✓ Cubierto 100%</span>
+                            </div>
+                        </template>
+                        <template x-if="calcularVueltoModal() > 0">
+                            <div>
+                                <span class="text-[9px] font-black uppercase text-amber-700 dark:text-amber-300 block">Vuelto a entregar</span>
+                                <span class="text-base sm:text-lg font-mono font-black text-amber-600 dark:text-amber-400 tabular-nums block"
+                                      x-text="'$ ' + formatDinero(calcularVueltoModal())"></span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Botones de Acceso Rápido (1 Clic para fijar el medio) -->
+                <div class="flex flex-wrap items-center gap-1.5 pt-1">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase mr-1">Rápido:</span>
+                    <template x-for="mp in mediosPagoLista" :key="mp.codigo">
+                        <button type="button" 
+                                @click="establecerPagoUnico(mp.codigo)"
+                                class="px-2 py-0.5 rounded text-[11px] font-bold border transition cursor-pointer flex items-center gap-1"
+                                :class="pagos.length === 1 && pagos[0].medio_pago === mp.codigo 
+                                    ? 'bg-slate-900 dark:bg-indigo-600 text-white border-slate-900 dark:border-indigo-600 shadow-xs' 
+                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200'">
+                            <span x-text="mp.icono || '💳'"></span>
+                            <span x-text="mp.nombre"></span>
+                        </button>
+                    </template>
+                </div>
+
+                <!-- Tabla de Pagos Detallados (Soporte Multipago) -->
+                <div class="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+                    <div class="bg-slate-50 dark:bg-slate-800/80 px-3 py-1.5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between text-[11px] font-black uppercase text-slate-600 dark:text-slate-400">
+                        <span>Medios de Pago Aplicados</span>
+                        <button type="button" @click="agregarPago()" 
+                                class="text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 font-bold lowercase first-letter:uppercase cursor-pointer">
+                            <span>+ agregar otro medio</span>
+                        </button>
+                    </div>
+
+                    <div class="p-2 space-y-2 max-h-[220px] overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+                        <template x-for="(pago, pIndex) in pagos" :key="pIndex">
+                            <div class="pt-2 first:pt-0 grid grid-cols-12 gap-2 items-center">
+                                
+                                <!-- Col 1: Selector de Medio de Pago (4 columnas) -->
+                                <div class="col-span-4">
+                                    <select :value="pago.medio_pago"
+                                            @change="cambiarMedioPagoFila(pIndex, $event.target.value)"
+                                            class="w-full text-xs font-bold py-1.5 px-2 rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
+                                        <template x-for="mpOpt in mediosPagoLista" :key="mpOpt.codigo">
+                                            <option :value="mpOpt.codigo" x-text="(mpOpt.icono || '💳') + ' ' + mpOpt.nombre"></option>
+                                        </template>
+                                    </select>
+                                </div>
+
+                                <!-- Col 2: Monto a Pagar con este medio (3 columnas) -->
+                                <div class="col-span-3 relative">
+                                    <span class="absolute inset-y-0 left-0 pl-2 flex items-center text-xs font-bold text-slate-400">$</span>
+                                    <input type="number" step="0.01" min="0.01" 
+                                           x-model.number="pago.monto"
+                                           placeholder="0.00"
+                                           class="w-full text-xs font-mono font-bold py-1.5 pl-5 pr-1.5 rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-right">
+                                </div>
+
+                                <!-- Col 3: N° Cupón / Referencia (4 columnas) -->
+                                <div class="col-span-4">
+                                    <input type="text" 
+                                           x-model="pago.cupon"
+                                           :placeholder="pago.tipo_base === 'debito' || pago.tipo_base === 'tarjeta_credito' ? 'N° Cupón tarjeta' : 'Ref. / Obs opcional'"
+                                           :class="(pago.tipo_base === 'debito' || pago.tipo_base === 'tarjeta_credito') ? 'border-sky-400 bg-sky-50/50 dark:bg-sky-950/20' : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900'"
+                                           class="w-full text-xs font-mono py-1.5 px-2 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:ring-1 focus:ring-indigo-500">
+                                </div>
+
+                                <!-- Col 4: Botón Quitar Fila (1 columna) -->
+                                <div class="col-span-1 text-center">
+                                    <button type="button" @click="quitarPago(pIndex)" 
+                                            :disabled="pagos.length === 1"
+                                            :class="pagos.length === 1 ? 'opacity-20 cursor-not-allowed text-slate-400' : 'text-rose-500 hover:text-rose-700 cursor-pointer'"
+                                            class="p-1 font-bold text-sm">
+                                        ✕
+                                    </button>
+                                </div>
+
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Panel Condicional si hay Pago en Efectivo: Calculador de Vuelto -->
+                <template x-if="tienePagoEfectivo()">
+                    <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2">
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="font-bold text-slate-700 dark:text-slate-300 uppercase text-[10px]">💵 Calculador de Vuelto en Efectivo:</span>
+                            <button type="button" @click="pagaCon = calcularTotal()" class="text-[11px] font-bold text-emerald-600 hover:underline cursor-pointer">
+                                Importe Exacto
+                            </button>
                         </div>
 
-                        <!-- Botones de billetes rápidos -->
-                        <div class="flex flex-wrap gap-1.5">
-                            <button type="button" @click="pagaCon = calcularTotal()" class="px-2 py-1 bg-white dark:bg-slate-800 border rounded text-[10px] font-bold">Exacto</button>
-                            <button type="button" @click="pagaCon = 2000" class="px-2 py-1 bg-white dark:bg-slate-800 border rounded text-[10px] font-bold">$2.000</button>
-                            <button type="button" @click="pagaCon = 5000" class="px-2 py-1 bg-white dark:bg-slate-800 border rounded text-[10px] font-bold">$5.000</button>
-                            <button type="button" @click="pagaCon = 10000" class="px-2 py-1 bg-white dark:bg-slate-800 border rounded text-[10px] font-bold">$10.000</button>
-                            <button type="button" @click="pagaCon = 20000" class="px-2 py-1 bg-white dark:bg-slate-800 border rounded text-[10px] font-bold">$20.000</button>
-                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="relative w-40">
+                                <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center text-xs font-bold text-slate-400">$</span>
+                                <input type="number" step="100" 
+                                       x-model.number="pagaCon" 
+                                       placeholder="Paga con..."
+                                       class="w-full text-xs font-mono font-bold py-1 pl-6 pr-2 rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
+                            </div>
 
-                        <!-- Vuelto calculado -->
-                        <div class="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-700">
-                            <span class="font-bold text-slate-600 dark:text-slate-400">Vuelto a entregar:</span>
-                            <span class="font-mono font-black text-base tabular-nums"
-                                  :class="(pagaCon - calcularTotal()) >= 0 ? 'text-emerald-600' : 'text-slate-400'"
-                                  x-text="'$ ' + formatDinero(Math.max(0, pagaCon - calcularTotal()))">
-                            </span>
+                            <div class="flex flex-wrap gap-1">
+                                <button type="button" @click="pagaCon = 2000" class="px-1.5 py-0.5 bg-white dark:bg-slate-700 border rounded text-[10px] font-bold font-mono cursor-pointer">$2k</button>
+                                <button type="button" @click="pagaCon = 5000" class="px-1.5 py-0.5 bg-white dark:bg-slate-700 border rounded text-[10px] font-bold font-mono cursor-pointer">$5k</button>
+                                <button type="button" @click="pagaCon = 10000" class="px-1.5 py-0.5 bg-white dark:bg-slate-700 border rounded text-[10px] font-bold font-mono cursor-pointer">$10k</button>
+                                <button type="button" @click="pagaCon = 20000" class="px-1.5 py-0.5 bg-white dark:bg-slate-700 border rounded text-[10px] font-bold font-mono cursor-pointer">$20k</button>
+                            </div>
+
+                            <div class="ml-auto text-right">
+                                <span class="text-[9px] text-slate-400 block uppercase font-bold">Vuelto</span>
+                                <span class="font-mono font-black text-sm text-emerald-600 dark:text-emerald-400"
+                                      x-text="'$ ' + formatDinero(calcularVueltoModal())"></span>
+                            </div>
                         </div>
                     </div>
                 </template>
 
-                <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-700">
+                <!-- Panel Condicional si hay Pago a Crédito Personal: Selector de Cuotas -->
+                <template x-if="tienePagoCreditoPersonal()">
+                    <div class="p-2.5 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 space-y-2">
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="font-black text-indigo-950 dark:text-indigo-200 uppercase text-[10px]">📋 Plan de Cuotas a Crédito Personal:</span>
+                            <span class="text-[10px] font-bold text-indigo-700 dark:text-indigo-300" x-text="'Interés lote: ' + tasaInteres + '%'"></span>
+                        </div>
+
+                        <div class="grid grid-cols-4 gap-1.5">
+                            <template x-for="n in [1, 2, 3, 4]" :key="n">
+                                <button type="button" @click="seleccionarCuotaPlan(n)"
+                                        :class="cuotasPlan === n ? 'bg-indigo-600 text-white font-black shadow-xs' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'"
+                                        class="py-1.5 px-2 rounded-lg text-center transition cursor-pointer">
+                                    <span class="text-xs font-bold block" x-text="n + (n === 1 ? ' Pago' : ' Cuotas')"></span>
+                                    <span class="text-[10px] font-mono block opacity-90" x-text="'$' + formatDinero(calcularValorCuota(n))"></span>
+                                </button>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Footer del Modal: Cancelar / Confirmar y Emitir -->
+                <div class="flex items-center justify-between pt-2.5 border-t border-slate-200 dark:border-slate-800">
                     <button type="button" @click="modalCobro = false" 
-                            class="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-slate-700 dark:text-slate-200 font-bold text-xs py-2 px-4 rounded-lg uppercase">
-                        Cancelar
+                            class="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs py-2 px-4 rounded-xl transition uppercase cursor-pointer">
+                        Cancelar (ESC)
                     </button>
+
                     <button type="button" @click="enviarVenta()"
-                            :disabled="procesando"
-                            class="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs py-2 px-6 rounded-lg shadow uppercase">
-                        <span x-text="procesando ? 'Facturando...' : 'Emitir Factura'"></span>
+                            :disabled="procesando || calcularSaldoRestante() > 0"
+                            :class="procesando || calcularSaldoRestante() > 0 ? 'bg-slate-300 dark:bg-slate-700 text-slate-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg active:scale-98 cursor-pointer'"
+                            class="py-2.5 px-6 rounded-xl font-black text-xs uppercase tracking-wide transition flex items-center gap-2">
+                        <span x-text="procesando ? 'Procesando Emisión...' : (esPresupuesto ? 'Confirmar Presupuesto' : (esRemito ? 'Confirmar Remito' : (esNotaCredito ? 'Confirmar Nota Crédito' : 'Confirmar y Facturar (ENTER)')))"></span>
+                        <span class="text-[10px] bg-black/20 text-white px-1.5 py-0.5 rounded font-mono">↵</span>
                     </button>
                 </div>
+
             </div>
         </div>
 
@@ -2032,28 +1814,56 @@
                 esTdf: {{ $esTdf ? 'true' : 'false' }},
                 esChubut: {{ $esChubut ? 'true' : 'false' }},
                 tipoComprobante: 'FACTURA_B',
-                get esFacturaA() {
-                    return this.tipoComprobante === 'FACTURA_A';
+                get esFacturaA() { return this.tipoComprobante === 'FACTURA_A'; },
+                get esFacturaB() { return this.tipoComprobante === 'FACTURA_B'; },
+                get esFacturaC() { return this.tipoComprobante === 'FACTURA_C'; },
+                get esRemito() { return this.tipoComprobante === 'REMITO'; },
+                get esPresupuesto() { return this.tipoComprobante === 'PRESUPUESTO'; },
+                get esNotaCredito() { return this.tipoComprobante.includes('NOTA_CREDITO'); },
+
+                get nombreComprobanteActual() {
+                    switch(this.tipoComprobante) {
+                        case 'FACTURA_A': return 'FACTURA A (IVA 21% Discriminado)';
+                        case 'FACTURA_B': return this.esTdf ? 'FACTURA B (Exento Ley 19.640)' : 'FACTURA B (Consumidor Final)';
+                        case 'FACTURA_C': return 'FACTURA C (Régimen Simplificado)';
+                        case 'REMITO': return 'REMITO DE SALIDA (Descuenta Stock - Sin Facturar)';
+                        case 'PRESUPUESTO': return 'PRESUPUESTO (Cotización - No Afecta Stock)';
+                        case 'NOTA_CREDITO_B': return 'NOTA DE CRÉDITO B';
+                        case 'NOTA_CREDITO_A': return 'NOTA DE CRÉDITO A';
+                        case 'NOTA_CREDITO': return 'NOTA DE CRÉDITO';
+                        default: return this.tipoComprobante;
+                    }
                 },
+
+                get textoBotonEmitir() {
+                    if (this.esPresupuesto) return 'Emitir Presupuesto';
+                    if (this.esRemito) return 'Emitir Remito de Salida';
+                    if (this.esNotaCredito) return 'Emitir Nota de Crédito';
+                    if (this.esFacturaA) return 'Emitir Factura A';
+                    if (this.esFacturaC) return 'Emitir Factura C';
+                    return 'Emitir Factura B';
+                },
+
                 get clienteTieneCuit() {
                     if (!this.clienteSeleccionado) return false;
                     let doc = String(this.clienteSeleccionado.dni || '').replace(/\D/g, '');
                     return doc.length === 11;
                 },
                 seleccionarTipoComprobante(tipo) {
-                    if (tipo === 'FACTURA_A') {
+                    if (tipo === 'FACTURA_A' || tipo === 'NOTA_CREDITO_A') {
                         if (!this.clienteSeleccionado) {
-                            alert('Para emitir Factura A primero debe buscar y seleccionar un cliente con CUIT (11 dígitos).');
+                            alert('Para comprobantes tipo A primero debe buscar y seleccionar un cliente con CUIT (11 dígitos).');
                             this.focusCliente();
                             return;
                         }
                         if (!this.clienteTieneCuit) {
-                            alert('El cliente seleccionado tiene DNI (' + (this.clienteSeleccionado.dni || 'Sin DNI') + '). Para emitir Factura A ante ARCA es obligatorio registrar su CUIT de 11 dígitos.');
+                            alert('El cliente seleccionado tiene DNI (' + (this.clienteSeleccionado.dni || 'Sin DNI') + '). Para comprobantes tipo A ante ARCA es obligatorio registrar su CUIT de 11 dígitos.');
                             return;
                         }
                     }
                     this.tipoComprobante = tipo;
                 },
+                presupuestoCargado: @json($presupuestoInicial ?? null),
                 items: [],
                 barcodeQuery: '',
                 sugerenciasProductos: [],
@@ -2064,6 +1874,121 @@
                 medioPago: '{{ $medioPagoInicial ?? ($mediosPago->firstWhere("codigo", "efectivo")?->codigo ?? $mediosPago->first()?->codigo ?? "efectivo") }}',
                 mediosPagoLista: @json($mediosPago),
                 referenciaPago: '',
+                pagos: [],
+
+                inicializarPagosPorDefecto() {
+                    let tot = this.calcularTotal();
+                    let mp = this.medioPagoActual || this.mediosPagoLista.find(m => m.codigo === 'efectivo') || this.mediosPagoLista[0];
+                    this.pagos = [
+                        {
+                            id_medio_pago: mp?.id || null,
+                            medio_pago: mp?.codigo || 'efectivo',
+                            nombre: mp?.nombre || 'Efectivo',
+                            tipo_base: mp?.tipo_base || 'efectivo',
+                            monto: tot,
+                            cupon: this.referenciaPago || '',
+                            codigo_forma: this.mapearCodigoFormaHasar(mp?.tipo_base || 'efectivo')
+                        }
+                    ];
+                    if (mp?.tipo_base === 'efectivo') {
+                        this.pagaCon = tot;
+                    }
+                },
+                mapearCodigoFormaHasar(tipoBase) {
+                    switch (tipoBase) {
+                        case 'debito': return 'TarjetaDeDebito';
+                        case 'tarjeta_credito': return 'TarjetaDeCredito';
+                        case 'transferencia': return 'TransferenciaBancaria';
+                        case 'cuenta_corriente': return 'CuentaCorriente';
+                        case 'cheque': return 'Cheque';
+                        default: return 'Efectivo';
+                    }
+                },
+                agregarPago() {
+                    let saldo = this.calcularSaldoRestante();
+                    let mp = this.mediosPagoLista.find(m => m.codigo === 'efectivo') || this.mediosPagoLista[0];
+                    this.pagos.push({
+                        id_medio_pago: mp?.id || null,
+                        medio_pago: mp?.codigo || 'efectivo',
+                        nombre: mp?.nombre || 'Efectivo',
+                        tipo_base: mp?.tipo_base || 'efectivo',
+                        monto: saldo > 0 ? saldo : 0,
+                        cupon: '',
+                        codigo_forma: 'Efectivo'
+                    });
+                },
+                quitarPago(idx) {
+                    if (this.pagos.length > 1) {
+                        this.pagos.splice(idx, 1);
+                    }
+                },
+                cambiarMedioPagoFila(idx, codigo) {
+                    let mp = this.mediosPagoLista.find(m => m.codigo === codigo);
+                    if (!mp) return;
+                    if (mp.tipo_base === 'credito' && !this.clienteSeleccionado) {
+                        alert('Para abonar con Crédito Personal debe seleccionar un cliente registrado.');
+                        return;
+                    }
+                    this.pagos[idx].id_medio_pago = mp.id;
+                    this.pagos[idx].medio_pago = mp.codigo;
+                    this.pagos[idx].nombre = mp.nombre;
+                    this.pagos[idx].tipo_base = mp.tipo_base;
+                    this.pagos[idx].codigo_forma = this.mapearCodigoFormaHasar(mp.tipo_base);
+                    if (this.pagos.length === 1) {
+                        this.medioPago = mp.codigo;
+                    }
+                },
+                establecerPagoUnico(codigo) {
+                    let mp = this.mediosPagoLista.find(m => m.codigo === codigo);
+                    if (!mp) return;
+                    if (mp.tipo_base === 'credito' && !this.clienteSeleccionado) {
+                        alert('Para abonar con Crédito Personal debe seleccionar un cliente registrado.');
+                        this.focusCliente();
+                        return;
+                    }
+                    let tot = this.calcularTotal();
+                    this.medioPago = mp.codigo;
+                    this.pagos = [
+                        {
+                            id_medio_pago: mp.id,
+                            medio_pago: mp.codigo,
+                            nombre: mp.nombre,
+                            tipo_base: mp.tipo_base,
+                            monto: tot,
+                            cupon: '',
+                            codigo_forma: this.mapearCodigoFormaHasar(mp.tipo_base)
+                        }
+                    ];
+                    if (mp.tipo_base === 'efectivo') {
+                        this.pagaCon = tot;
+                    }
+                },
+                calcularTotalCubierto() {
+                    return Math.round((this.pagos || []).reduce((acc, p) => acc + (parseFloat(p.monto) || 0), 0) * 100) / 100;
+                },
+                calcularSaldoRestante() {
+                    return Math.max(0, Math.round((this.calcularTotal() - this.calcularTotalCubierto()) * 100) / 100);
+                },
+                calcularVueltoModal() {
+                    let efectivo = (this.pagos || []).filter(p => p.tipo_base === 'efectivo').reduce((acc, p) => acc + (parseFloat(p.monto) || 0), 0);
+                    let noEfectivo = (this.pagos || []).filter(p => p.tipo_base !== 'efectivo').reduce((acc, p) => acc + (parseFloat(p.monto) || 0), 0);
+                    let restoParaEfectivo = Math.max(0, this.calcularTotal() - noEfectivo);
+                    let pagando = (this.pagaCon && this.pagaCon > 0) ? this.pagaCon : efectivo;
+                    return Math.max(0, Math.round((pagando - restoParaEfectivo) * 100) / 100);
+                },
+                obtenerCuponesStr() {
+                    let cupones = (this.pagos || []).map(p => (p.cupon || '').trim()).filter(c => c.length > 0);
+                    return cupones.length > 0 ? cupones.join(', ') : (this.referenciaPago || null);
+                },
+                tienePagoTarjeta() {
+                    return (this.pagos || []).some(p => p.tipo_base === 'debito' || p.tipo_base === 'tarjeta_credito');
+                },
+                tienePagoEfectivo() {
+                    return (this.pagos || []).some(p => p.tipo_base === 'efectivo');
+                },
+                tienePagoCreditoPersonal() {
+                    return (this.pagos || []).some(p => p.tipo_base === 'credito' || p.medio_pago === 'credito_personal');
+                },
                 get medioPagoActual() {
                     return this.mediosPagoLista.find(m => m.codigo === this.medioPago) || null;
                 },
@@ -2361,6 +2286,16 @@
                     }
                 },
                 imprimirComprobanteExito(volverAComenzar = false) {
+                    if (this.ventaExitosa && this.ventaExitosa.tipo_emision === 'fiscal_hasar') {
+                        if (this.ventaExitosa.hasar_payload) {
+                            this.enviarAHasarBridge(this.ventaExitosa.hasar_payload, true);
+                        }
+                        if (volverAComenzar) {
+                            this.cerrarModalExito();
+                        }
+                        return;
+                    }
+
                     let iframe = document.getElementById('iframeComprobanteExito');
                     if (!iframe || !iframe.contentWindow) return;
 
@@ -2405,6 +2340,83 @@
                         alTerminar();
                     }, 250);
                 },
+                async enviarAHasarBridge(payload, esReintento = false) {
+                    let puertoHTTP = 8585;
+                    let puertoHTTPS = 8586;
+                    let urls = [
+                        `http://127.0.0.1:${puertoHTTP}/imprimir`,
+                        `https://127.0.0.1:${puertoHTTPS}/imprimir`
+                    ];
+                    if (window.location.protocol === 'https:') {
+                        urls = [
+                            `https://127.0.0.1:${puertoHTTPS}/imprimir`,
+                            `http://127.0.0.1:${puertoHTTP}/imprimir`
+                        ];
+                    }
+
+                    let exito = false;
+                    let ultimoError = null;
+                    let resData = null;
+
+                    for (let u of urls) {
+                        try {
+                            let res = await fetch(u, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                                body: JSON.stringify(payload)
+                            });
+                            if (res.ok) {
+                                resData = await res.json();
+                                exito = true;
+                                break;
+                            } else {
+                                let errText = await res.text();
+                                ultimoError = `Error HTTP ${res.status}: ${errText}`;
+                            }
+                        } catch (err) {
+                            ultimoError = err;
+                        }
+                    }
+
+                    if (exito) {
+                        console.log('✅ Hasar Fiscal impreso exitosamente:', resData);
+                        if (esReintento) {
+                            alert('✅ Ticket enviado e impreso correctamente en la Impresora Fiscal Hasar.');
+                        }
+                        return true;
+                    } else {
+                        console.warn('⚠️ No se pudo comunicar con el Puente Fiscal Hasar:', ultimoError);
+                        alert('⚠️ ATENCIÓN: No se pudo comunicar con la Impresora Fiscal Hasar.\n\n' +
+                              '1. Verifique que el programa "Puente Fiscal Hasar" esté abierto en la barra de tareas de Windows.\n' +
+                              '2. Si está accediendo por HTTPS en Brave o Chrome, configure el sitio para "Permitir contenido no seguro" (haga clic en el icono a la izquierda de la barra de direcciones).\n' +
+                              '3. Verifique que la impresora fiscal esté encendida con luz verde y papel.');
+                        return false;
+                    }
+                },
+                async consultarProximoNumeroHasar() {
+                    let urls = [
+                        'http://127.0.0.1:8585/proximo-numero',
+                        'https://127.0.0.1:8586/proximo-numero'
+                    ];
+                    if (window.location.protocol === 'https:') {
+                        urls = [
+                            'https://127.0.0.1:8586/proximo-numero',
+                            'http://127.0.0.1:8585/proximo-numero'
+                        ];
+                    }
+                    for (let u of urls) {
+                        try {
+                            let res = await fetch(u, { method: 'GET', headers: { 'Accept': 'application/json' } });
+                            if (res.ok) {
+                                let json = await res.json();
+                                if (json && json.exito) return json;
+                            }
+                        } catch (e) {
+                            // continuar
+                        }
+                    }
+                    return null;
+                },
                 cerrarModalExito() {
                     this.modalExito = false;
                     this.iniciarNuevaVenta();
@@ -2413,6 +2425,10 @@
                 initPos() {
                     if (this.clienteSeleccionado) {
                         this.consultarInfoCredito(this.clienteSeleccionado.id);
+                    }
+
+                    if (this.presupuestoCargado && this.presupuestoCargado.items && this.presupuestoCargado.items.length > 0) {
+                        this.items = JSON.parse(JSON.stringify(this.presupuestoCargado.items));
                     }
 
                     this.focusInicialSegunModo();
@@ -3004,6 +3020,8 @@
                         return;
                     }
                     this.items = [];
+                    this.pagos = [];
+                    this.referenciaPago = '';
                     this.creditoAutorizado = false;
                     this.focusInicialSegunModo();
                 },
@@ -3027,6 +3045,10 @@
                         console.error('Error buscando clientes:', e);
                         return [];
                     }
+                },
+
+                buscarClientesSugeridos() {
+                    return this.buscarClientes();
                 },
 
                 moverSugerenciaCliente(delta) {
@@ -3073,6 +3095,8 @@
 
                     if (this.esTrelew && this.items.length === 0) {
                         this.focusMontoGenerico();
+                    } else if (!this.esTrelew) {
+                        this.focusBarcode();
                     }
                 },
 
@@ -3271,26 +3295,18 @@
                         return;
                     }
 
-                    if (this.esCredito) {
-                        if (!this.clienteSeleccionado) {
-                            alert('Para pagar a crédito debe seleccionar un cliente registrado.');
-                            this.focusCliente();
-                            return;
-                        }
-                        // Si el crédito ya fue verificado y autorizado, emitir la factura directamente
-                        if (this.creditoAutorizado) {
-                            this.enviarVenta();
-                            return;
-                        }
-                        this.abrirModalCredito();
-                    } else {
-                        if (this.esEfectivo) {
-                            if (!this.pagaCon || this.pagaCon < this.calcularTotal()) {
-                                this.pagaCon = this.calcularTotal();
-                            }
-                        }
-                        this.modalCobro = true;
+                    // Inicializar o sincronizar medios de pago
+                    if (!this.pagos || this.pagos.length === 0 || this.calcularTotalCubierto() === 0) {
+                        this.inicializarPagosPorDefecto();
+                    } else if (this.pagos.length === 1) {
+                        this.pagos[0].monto = this.calcularTotal();
                     }
+
+                    if (this.tienePagoEfectivo() && (!this.pagaCon || this.pagaCon < this.calcularTotal())) {
+                        this.pagaCon = this.calcularTotal();
+                    }
+
+                    this.modalCobro = true;
                 },
 
                 async enviarAperturaCaja() {
@@ -3451,6 +3467,17 @@
                     if (this.procesando) return;
                     this.procesando = true;
 
+                    let listPagos = (this.pagos && this.pagos.length > 0) ? this.pagos : [
+                        {
+                            id_medio_pago: this.medioPagoActual?.id || null,
+                            medio_pago: this.medioPago || 'efectivo',
+                            nombre: this.medioPagoActual?.nombre || 'Efectivo',
+                            monto: this.calcularTotal(),
+                            cupon: this.referenciaPago || null,
+                            codigo_forma: this.mapearCodigoFormaHasar(this.medioPagoActual?.tipo_base || 'efectivo')
+                        }
+                    ];
+
                     let payload = {
                         _token: '{{ csrf_token() }}',
                         id_sucursal: {{ $sucursalActiva->id ?? 1 }},
@@ -3459,11 +3486,21 @@
                         id_cliente: this.clienteSeleccionado ? this.clienteSeleccionado.id : null,
                         cliente_nombre: this.clienteSeleccionado ? String(this.clienteSeleccionado.nombre) : 'CONSUMIDOR FINAL',
                         cliente_documento: (this.clienteSeleccionado && this.clienteSeleccionado.dni) ? String(this.clienteSeleccionado.dni) : null,
-                        medio_pago: this.medioPago,
+                        medio_pago: (listPagos.length > 1) ? 'multipago' : (listPagos[0]?.medio_pago || this.medioPago),
+                        pagos: listPagos.map(p => ({
+                            id_medio_pago: p.id_medio_pago || null,
+                            medio_pago: p.medio_pago || 'efectivo',
+                            nombre: p.nombre || 'Efectivo',
+                            monto: parseFloat(p.monto) || 0,
+                            cupon: p.cupon ? String(p.cupon).trim() : null,
+                            tipo_base: p.tipo_base || 'efectivo',
+                            codigo_forma: p.codigo_forma || null
+                        })),
+                        numero_cupon: this.obtenerCuponesStr(),
                         descuento: this.calcularDescuento(),
-                        cuotas: this.esCredito ? parseInt(this.cuotasPlan || 1) : null,
-                        autorizado_vendedor: this.esCredito ? (this.autorizadoPorVendedor ? true : false) : false,
-                        observaciones: this.referenciaPago ? ('[Ref: ' + this.referenciaPago + ']') : null,
+                        cuotas: this.tienePagoCreditoPersonal() ? parseInt(this.cuotasPlan || 1) : null,
+                        autorizado_vendedor: this.tienePagoCreditoPersonal() ? (this.autorizadoPorVendedor ? true : false) : false,
+                        observaciones: this.obtenerCuponesStr() ? ('[Ref: ' + this.obtenerCuponesStr() + ']') : null,
                         items: this.items.map(it => ({
                             id_producto: it.id_producto || null,
                             codigo_producto: it.codigo_producto ? String(it.codigo_producto) : (it.codigo ? String(it.codigo) : null),
@@ -3473,6 +3510,13 @@
                             descuento_porcentaje: Math.max(0, Math.min(100, parseFloat(it.descuento_porcentaje) || 0))
                         }))
                     };
+
+                    // Consultar número oficial previo a la controladora fiscal Hasar
+                    let hasarInfo = await this.consultarProximoNumeroHasar();
+                    if (hasarInfo && hasarInfo.exito) {
+                        payload.hasar_ticket_numero = hasarInfo.proximo_comprobante;
+                        payload.hasar_pv_numero = hasarInfo.punto_venta;
+                    }
 
                     try {
                         let res = await fetch(`{{ route('ventas.store') }}`, {
@@ -3510,14 +3554,17 @@
                             return;
                         }
 
-                        // Si el punto de venta es Controlador Fiscal Hasar, enviar comando al simulador / puente local
+                        // Si el punto de venta es Controlador Fiscal Hasar, enviar comando al puente local
                         if (data.tipo_emision === 'fiscal_hasar') {
-                            let puertoLocal = (data.hasar_config && data.hasar_config.puerto_local) ? data.hasar_config.puerto_local : 8585;
+                            let hasarIp = (data.hasar_config && data.hasar_config.hasar_ip) ? data.hasar_config.hasar_ip : undefined;
+                            let hasarPuerto = (data.hasar_config && data.hasar_config.hasar_puerto) ? parseInt(data.hasar_config.hasar_puerto) : 80;
                             let letraComprobante = (this.tipoComprobante === 'FACTURA_A') ? 'A' : 'B';
                             let descMedio = this.medioPagoActual ? this.medioPagoActual.nombre : (this.medioPago === 'efectivo' ? 'Efectivo' : (this.medioPago === 'tarjeta_debito' ? 'Tarjeta Débito' : (this.medioPago === 'tarjeta_credito' ? 'Tarjeta Crédito' : 'Transferencia')));
 
                             let bodyHasar = {
                                 accion: "factura",
+                                hasar_ip: hasarIp,
+                                hasar_puerto: hasarPuerto,
                                 tipo_comprobante: letraComprobante,
                                 cliente: {
                                     nombre: this.clienteSeleccionado ? (this.clienteSeleccionado.nombre || this.clienteSeleccionado.razon_social) : 'CONSUMIDOR FINAL',
@@ -3526,30 +3573,24 @@
                                     responsabilidad: (this.tipoComprobante === 'FACTURA_A') ? 'I' : 'C',
                                     domicilio: (this.clienteSeleccionado && this.clienteSeleccionado.domicilio) ? this.clienteSeleccionado.domicilio : 'Av. Fontana 123'
                                 },
-                                items: (this.items || []).map(it => ({
+                                items: (this.items || []).map((it, idx) => ({
+                                    id: String(it.id || (idx + 1)),
+                                    codigo: String(it.codigo_barra || it.id || ('VAR' + (idx + 1))),
                                     descripcion: it.descripcion,
                                     cantidad: parseFloat(it.cantidad) || 1,
                                     precio_unitario: parseFloat(it.precio_unitario) || 0,
                                     alicuota_iva: this.esTdf ? 0.0 : 21.0
                                 })),
-                                pagos: [
-                                    {
-                                        descripcion: descMedio,
-                                        monto: parseFloat(data.total)
-                                    }
-                                ]
+                                pagos: listPagos.map(p => ({
+                                    descripcion: p.nombre || p.medio_pago || 'Efectivo',
+                                    monto: parseFloat(p.monto) || 0,
+                                    codigo_forma: p.codigo_forma || this.mapearCodigoFormaHasar(p.tipo_base || 'efectivo'),
+                                    cupon: p.cupon ? String(p.cupon).trim() : null
+                                }))
                             };
 
-                            try {
-                                // Enviar a endpoint /imprimir probado en el simulador Hasar
-                                await fetch(`http://127.0.0.1:${puertoLocal}/imprimir`, {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json; charset=utf-8' },
-                                    body: JSON.stringify(bodyHasar)
-                                });
-                            } catch (eHasar) {
-                                console.warn('Aviso: No se pudo contactar el simulador Hasar en http://127.0.0.1:' + puertoLocal + '/imprimir', eHasar);
-                            }
+                            data.hasar_payload = bodyHasar;
+                            await this.enviarAHasarBridge(bodyHasar, false);
                         }
 
                         // Éxito: cerrar modales de cobro y mostrar modal final
@@ -3562,9 +3603,10 @@
                         this.impresionPendienteExito = false;
                         this.ventaExitosa = {
                             id: data.venta_id,
-                            comprobante: data.comprobante,
+                            comprobante: (hasarInfo && hasarInfo.exito && data.tipo_emision === 'fiscal_hasar') ? hasarInfo.comprobante_formateado : data.comprobante,
                             total: data.total,
                             tipo_emision: data.tipo_emision,
+                            hasar_payload: (data.tipo_emision === 'fiscal_hasar') ? data.hasar_payload : null,
                             cae: data.cae,
                             cae_vencimiento: data.cae_vencimiento,
                             afip_qr: data.afip_qr,

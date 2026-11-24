@@ -93,7 +93,7 @@
 
         <!-- Barra de Filtros -->
         <div class="bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs">
-            <form action="{{ route('ventas.index') }}" method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2">
+            <form action="{{ route('ventas.index') }}" method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-2">
                 {{-- Preservar ordenamiento activo --}}
                 <input type="hidden" name="sort" value="{{ $sort }}">
                 <input type="hidden" name="direction" value="{{ $direction }}">
@@ -142,6 +142,20 @@
                     </select>
                 </div>
 
+                {{-- Tipo de Comprobante --}}
+                <div>
+                    <label for="tipo_comprobante" class="block text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-0.5">Tipo Cbte</label>
+                    <select name="tipo_comprobante" id="tipo_comprobante" class="w-full text-xs py-1.5 px-2 rounded-lg border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100">
+                        <option value="all">Todos</option>
+                        <option value="FACTURA_B" {{ request('tipo_comprobante') === 'FACTURA_B' ? 'selected' : '' }}>Factura B</option>
+                        <option value="FACTURA_A" {{ request('tipo_comprobante') === 'FACTURA_A' ? 'selected' : '' }}>Factura A</option>
+                        <option value="FACTURA_C" {{ request('tipo_comprobante') === 'FACTURA_C' ? 'selected' : '' }}>Factura C</option>
+                        <option value="REMITO" {{ request('tipo_comprobante') === 'REMITO' ? 'selected' : '' }}>Remito</option>
+                        <option value="PRESUPUESTO" {{ request('tipo_comprobante') === 'PRESUPUESTO' ? 'selected' : '' }}>Presupuesto</option>
+                        <option value="NOTA_CREDITO_B" {{ request('tipo_comprobante') === 'NOTA_CREDITO_B' ? 'selected' : '' }}>Nota de Crédito</option>
+                    </select>
+                </div>
+
                 {{-- Fecha Desde --}}
                 <div>
                     <label for="fecha_desde" class="block text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-0.5">Fecha Desde</label>
@@ -159,7 +173,7 @@
                     <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-2 px-3 rounded-lg transition shadow-xs">
                         Filtrar
                     </button>
-                    @if(request()->anyFilled(['search', 'sucursal', 'medio_pago', 'fecha_desde', 'fecha_hasta', 'estado']))
+                    @if(request()->anyFilled(['search', 'sucursal', 'medio_pago', 'tipo_comprobante', 'fecha_desde', 'fecha_hasta', 'estado']))
                         <a href="{{ route('ventas.index') }}" title="Limpiar Filtros"
                            class="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-bold text-xs py-2 px-2.5 rounded-lg transition">
                             ✕
@@ -311,8 +325,16 @@
                                         <a href="{{ route('ventas.show', $v->id) }}" class="text-indigo-600 dark:text-indigo-400 hover:underline">
                                             {{ $v->comprobante }}
                                         </a>
-                                        <span class="text-[9px] font-bold px-1 rounded font-mono {{ $v->isFacturaA() ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/60 dark:text-indigo-200' : 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200' }}" title="{{ $v->isFacturaA() ? 'Factura A (Responsable Inscripto)' : 'Factura B (Consumidor Final)' }}">
-                                            {{ $v->isFacturaA() ? 'A' : 'B' }}
+                                        <span class="text-[9px] font-bold px-1 rounded font-mono 
+                                            @if($v->isFacturaA()) bg-indigo-100 text-indigo-800 dark:bg-indigo-900/60 dark:text-indigo-200
+                                            @elseif($v->isFacturaC()) bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200
+                                            @elseif($v->isRemito()) bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200
+                                            @elseif($v->isPresupuesto()) bg-purple-100 text-purple-800 dark:bg-purple-900/60 dark:text-purple-200
+                                            @elseif($v->isNotaCredito()) bg-rose-100 text-rose-800 dark:bg-rose-900/60 dark:text-rose-200
+                                            @else bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200
+                                            @endif" 
+                                            title="{{ $v->tipo_comprobante_nombre }}">
+                                            {{ $v->letra_comprobante }}
                                         </span>
                                         @if($v->esExentoIva())
                                             <span class="text-[9px] font-bold px-1 rounded font-mono bg-teal-100 text-teal-800 dark:bg-teal-950/60 dark:text-teal-300 border border-teal-300 dark:border-teal-800" title="Operación Exenta de IVA (Ley 19.640 - Tierra del Fuego)">
@@ -410,6 +432,14 @@
                                     @if($v->estado === 'completada')
                                         <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black uppercase bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                                             Completada
+                                        </span>
+                                    @elseif($v->estado === 'remito')
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black uppercase bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800" title="Remito pendiente de facturar">
+                                            Remito
+                                        </span>
+                                    @elseif($v->estado === 'presupuesto')
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black uppercase bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800" title="Cotización / Presupuesto">
+                                            Presupuesto
                                         </span>
                                     @else
                                         <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black uppercase bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">

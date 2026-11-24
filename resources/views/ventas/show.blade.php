@@ -1,5 +1,58 @@
 <x-app-layout>
-    <div class="max-w-6xl mx-auto py-3 space-y-4" x-data="{ modalAnular: false, motivoAnulacion: '' }">
+    <div class="max-w-6xl mx-auto py-3 space-y-4" x-data="{
+        modalAnular: false,
+        motivoAnulacion: '',
+        modalFacturarRemito: false,
+        tipoFacturaRemito: 'FACTURA_B',
+        async enviarAHasar() {
+            if (!confirm('¿Desea enviar la impresión de este comprobante a la Impresora Fiscal Hasar?')) return;
+            try {
+                let resPayload = await fetch('{{ route("ventas.hasar-payload", $venta->id) }}');
+                if (!resPayload.ok) throw new Error('No se pudo generar el payload fiscal de la venta.');
+                let payload = await resPayload.json();
+
+                let urls = [
+                    'http://127.0.0.1:8585/imprimir',
+                    'https://127.0.0.1:8586/imprimir'
+                ];
+                if (window.location.protocol === 'https:') {
+                    urls = [
+                        'https://127.0.0.1:8586/imprimir',
+                        'http://127.0.0.1:8585/imprimir'
+                    ];
+                }
+
+                let exito = false;
+                let resData = null;
+                let lastErr = null;
+
+                for (let u of urls) {
+                    try {
+                        let r = await fetch(u, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                            body: JSON.stringify(payload)
+                        });
+                        if (r.ok) {
+                            resData = await r.json();
+                            exito = true;
+                            break;
+                        }
+                    } catch (err) {
+                        lastErr = err;
+                    }
+                }
+
+                if (exito) {
+                    alert('✅ Comprobante enviado e impreso exitosamente en la Hasar 2G. Ticket Oficial N° ' + (resData.numero_comprobante || ''));
+                } else {
+                    alert('⚠️ No se pudo comunicar con el Puente Fiscal Hasar (127.0.0.1:8585).\n\n1. Verifique que puente-hasar prog.exe esté abierto.\n2. En Brave / Chrome, permita Contenido no seguro en la configuración del sitio.');
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+    }">
         
         <!-- Header con Acciones -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-2 border-b border-slate-200 dark:border-slate-800">
@@ -12,9 +65,16 @@
                 </a>
                 <div>
                     <h1 class="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight flex items-center gap-2">
-                        <span>Factura {{ $venta->isFacturaA() ? 'A' : 'B' }} #{{ $venta->comprobante }}</span>
-                        <span class="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded {{ $venta->isFacturaA() ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-200 border border-indigo-300' : 'bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-200' }}">
-                            {{ $venta->isFacturaA() ? 'Factura A' : 'Factura B' }}
+                        <span>{{ $venta->tipo_comprobante_nombre }} #{{ $venta->comprobante }}</span>
+                        <span class="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded
+                            @if($venta->isFacturaA()) bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-200 border border-indigo-300
+                            @elseif($venta->isFacturaC()) bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200 border border-blue-300
+                            @elseif($venta->isRemito()) bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200 border border-amber-300
+                            @elseif($venta->isPresupuesto()) bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-200 border border-purple-300
+                            @elseif($venta->isNotaCredito()) bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200 border border-rose-300
+                            @else bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-200
+                            @endif">
+                            {{ $venta->tipo_comprobante_nombre }}
                         </span>
                         @if($venta->esExentoIva())
                             <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-teal-100 text-teal-800 border border-teal-300 dark:bg-teal-950 dark:text-teal-300" title="Operación Exenta por Ley 19.640">
@@ -24,6 +84,14 @@
                         @if($venta->estado === 'completada')
                             <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300">
                                 Completada
+                            </span>
+                        @elseif($venta->estado === 'remito')
+                            <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 dark:bg-amber-950 dark:text-amber-300" title="Mercadería entregada sin comprobante fiscal. Debe facturarse posteriormente.">
+                                Remito Pendiente
+                            </span>
+                        @elseif($venta->estado === 'presupuesto')
+                            <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-300 dark:bg-purple-950 dark:text-purple-300" title="Cotización previa. No afecta stock ni es fiscal.">
+                                Presupuesto
                             </span>
                         @else
                             <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-300 dark:bg-rose-950 dark:text-rose-300">
@@ -55,6 +123,26 @@
                     </a>
                 @endif
 
+                @if($venta->isPresupuesto())
+                    <a href="{{ route('ventas.create', ['presupuesto_id' => $venta->id]) }}"
+                       class="bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs py-2 px-3 rounded-lg shadow-sm transition flex items-center gap-1.5 uppercase">
+                        <span>🛒 Cargar en Facturador</span>
+                    </a>
+                @endif
+
+                @if($venta->isRemito() && $venta->estado === 'remito')
+                    <button type="button" @click="modalFacturarRemito = true"
+                            class="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs py-2 px-3 rounded-lg shadow-sm transition flex items-center gap-1.5 uppercase">
+                        <span>🧾 Facturar Remito</span>
+                    </button>
+                @endif
+
+                <button type="button" @click="enviarAHasar()"
+                        class="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs py-2 px-3 rounded-lg shadow-sm transition flex items-center gap-1.5 uppercase"
+                        title="Mandar impresión física a la controladora fiscal Hasar">
+                    <span>🖨️ Mandar a Hasar</span>
+                </button>
+
                 <a href="{{ route('ventas.imprimir', ['venta' => $venta->id, 'formato' => 'ticket']) }}" target="_blank"
                    class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2 px-3 rounded-lg shadow-sm transition flex items-center gap-1.5 uppercase">
                     <span>🖨️ Ticket (80mm)</span>
@@ -62,13 +150,13 @@
 
                 <a href="{{ route('ventas.imprimir', ['venta' => $venta->id, 'formato' => 'a4']) }}" target="_blank"
                    class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-2 px-3 rounded-lg shadow-sm transition flex items-center gap-1.5 uppercase">
-                    <span>📄 Factura A4</span>
+                    <span>📄 Imprimir A4</span>
                 </a>
 
-                @if($venta->estado === 'completada')
+                @if($venta->estado === 'completada' || $venta->estado === 'remito' || $venta->estado === 'presupuesto')
                     <button type="button" @click="modalAnular = true"
                             class="bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800 font-bold text-xs py-2 px-3 rounded-lg transition uppercase flex items-center gap-1">
-                        <span>🚫 Anular Venta</span>
+                        <span>🚫 Anular</span>
                     </button>
                 @endif
             </div>
@@ -386,6 +474,53 @@
                 </form>
             </div>
         </div>
+
+        <!-- Modal Facturar Remito -->
+        @if($venta->isRemito() && $venta->estado === 'remito')
+        <div x-show="modalFacturarRemito" 
+             class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4"
+             x-cloak>
+            <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-4"
+                 @click.away="modalFacturarRemito = false">
+                <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-3">
+                    <h3 class="text-base font-black text-amber-600 uppercase flex items-center gap-2">
+                        <span>🧾 Facturar Remito #{{ $venta->comprobante }}</span>
+                    </h3>
+                    <button type="button" @click="modalFacturarRemito = false" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
+                </div>
+
+                <p class="text-xs text-slate-600 dark:text-slate-300">
+                    Se generará la factura fiscal correspondiente. La mercadería ya fue descontada de inventario, por lo que este paso <strong>NO alterará el stock</strong> nuevamente.
+                </p>
+
+                <form action="{{ route('ventas.facturar-remito', $venta->id) }}" method="POST" class="space-y-4">
+                    @csrf
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-200 uppercase mb-1">
+                            Tipo de Factura a emitir:
+                        </label>
+                        <select name="tipo_comprobante" x-model="tipoFacturaRemito" 
+                                class="w-full text-xs py-2 px-3 rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-bold focus:ring-amber-500 focus:border-amber-500">
+                            <option value="FACTURA_B">Factura B (Consumidor Final)</option>
+                            <option value="FACTURA_A">Factura A (Responsable Inscripto con CUIT)</option>
+                            <option value="FACTURA_C">Factura C (Régimen Simplificado)</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                        <button type="button" @click="modalFacturarRemito = false"
+                                class="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-slate-700 dark:text-slate-200 font-bold text-xs py-2 px-4 rounded-lg uppercase">
+                            Cancelar
+                        </button>
+                        <button type="submit"
+                                class="bg-amber-600 hover:bg-amber-700 text-white font-black text-xs py-2 px-5 rounded-lg shadow uppercase">
+                            Confirmar Emisión
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        @endif
 
     </div>
 </x-app-layout>
