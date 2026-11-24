@@ -427,9 +427,10 @@
                         <div class="flex items-center gap-1 flex-grow justify-end">
                             <div class="relative w-full max-w-[130px]">
                                 <span class="absolute inset-y-0 left-0 pl-2 flex items-center text-xs font-black text-slate-400">$</span>
-                                <input type="number" step="0.01" min="1" 
+                                <input type="text" inputmode="decimal" lang="en-US"
                                        x-ref="montoGenericoInput"
                                        x-model="montoGenerico" 
+                                       @input="montoGenerico = montoGenerico.replace(',', '.')"
                                        @keydown.enter.prevent="procesarMontoGenericoEnter()"
                                        placeholder="0.00"
                                        class="w-full text-xs font-mono font-black py-1 pl-5 pr-1 rounded-lg border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:ring-1 focus:ring-amber-500">
@@ -548,7 +549,7 @@
                                                     class="px-2 py-0.5 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 font-black text-xs transition">
                                                 -
                                             </button>
-                                            <input type="number" min="0.01" step="1" 
+                                            <input type="number" min="0.01" step="1" lang="en-US"
                                                    x-model.number="item.cantidad"
                                                    @change="validarItem(index)"
                                                    @keydown.enter.prevent="focusBarcode()"
@@ -562,7 +563,7 @@
 
                                     {{-- Precio Unitario --}}
                                     <td class="py-1.5 px-3 text-right">
-                                        <input type="number" step="0.01" min="0" 
+                                        <input type="number" step="0.01" min="0" lang="en-US"
                                                x-model.number="item.precio_unitario"
                                                @change="validarItem(index)"
                                                class="w-24 text-right text-xs font-mono font-bold py-0.5 px-1.5 rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:ring-1 focus:ring-indigo-500">
@@ -571,7 +572,7 @@
                                     {{-- % Descuento --}}
                                     <td class="py-1.5 px-2 text-center">
                                         <div class="inline-flex items-center gap-1 justify-center">
-                                            <input type="number" min="0" max="100" step="1" 
+                                            <input type="number" min="0" max="100" step="1" lang="en-US"
                                                    x-model.number="item.descuento_porcentaje"
                                                    @input="validarItem(index)"
                                                    placeholder="0"
@@ -645,7 +646,7 @@
                                 </button>
                             </div>
 
-                            <input type="number" step="0.01" min="0"
+                            <input type="number" step="0.01" min="0" lang="en-US"
                                    x-model.number="descuentoManual"
                                    placeholder="0.00"
                                    class="w-20 text-right text-xs font-mono font-bold py-0.5 px-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
@@ -797,7 +798,7 @@
                                         <div class="flex items-center gap-2">
                                             <div class="relative flex-1">
                                                 <span class="absolute left-2.5 top-1.5 text-xs text-slate-400 font-bold">$</span>
-                                                <input type="number" step="0.01" min="0" x-model="nuevoLimiteInput" 
+                                                <input type="number" step="0.01" min="0" lang="en-US" x-model="nuevoLimiteInput" 
                                                        @keydown.enter.prevent="guardarNuevoLimite()"
                                                        placeholder="Nuevo límite"
                                                        class="w-full pl-6 pr-2 py-1 text-xs font-mono font-bold bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg">
@@ -1134,7 +1135,7 @@
                                 <!-- Col 2: Monto a Pagar con este medio (3 columnas) -->
                                 <div class="col-span-3 relative">
                                     <span class="absolute inset-y-0 left-0 pl-2 flex items-center text-xs font-bold text-slate-400">$</span>
-                                    <input type="number" step="0.01" min="0.01" 
+                                    <input type="number" step="0.01" min="0.01" lang="en-US"
                                            x-model.number="pago.monto"
                                            placeholder="0.00"
                                            class="w-full text-xs font-mono font-bold py-1.5 pl-5 pr-1.5 rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-right">
@@ -1177,7 +1178,7 @@
                         <div class="flex items-center gap-2">
                             <div class="relative w-40">
                                 <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center text-xs font-bold text-slate-400">$</span>
-                                <input type="number" step="100" 
+                                <input type="number" step="100" lang="en-US"
                                        x-model.number="pagaCon" 
                                        placeholder="Paga con..."
                                        class="w-full text-xs font-mono font-bold py-1 pl-6 pr-2 rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
@@ -2110,7 +2111,7 @@
                             this.focusCliente();
                             return;
                         }
-                        if (parseFloat(this.montoGenerico) > 0) {
+                        if (this.parseMonto(this.montoGenerico) > 0) {
                             this.agregarArticuloGenerico(false);
                         }
                         this.abrirModalCredito();
@@ -2121,7 +2122,7 @@
                             this.focusCliente();
                             return;
                         }
-                        if (parseFloat(this.montoGenerico) > 0) {
+                        if (this.parseMonto(this.montoGenerico) > 0) {
                             this.agregarArticuloGenerico(false);
                         }
                         if (this.items.length === 0) {
@@ -2146,13 +2147,13 @@
                     } else if (paso === 2) {
                         if (this.barcodeQuery.trim().length > 0) {
                             this.procesarCodigoBarra();
-                        } else if (parseFloat(this.montoGenerico) > 0) {
+                        } else if (this.parseMonto(this.montoGenerico) > 0) {
                             this.procesarMontoGenericoEnter();
                         } else {
                             this.focusBarcode();
                         }
                     } else if (paso === 3) {
-                        if (parseFloat(this.montoGenerico) > 0) {
+                        if (this.parseMonto(this.montoGenerico) > 0) {
                             this.procesarMontoGenericoEnter();
                         } else {
                             this.focusMontoGenerico();
@@ -2983,9 +2984,15 @@
                     }
                 },
 
+                parseMonto(val) {
+                    if (val === undefined || val === null || val === '') return 0;
+                    let n = parseFloat(String(val).replace(',', '.'));
+                    return isNaN(n) ? 0 : n;
+                },
+
                 agregarArticuloGenerico(enfocar = true) {
-                    let monto = parseFloat(this.montoGenerico);
-                    if (isNaN(monto) || monto <= 0) {
+                    let monto = this.parseMonto(this.montoGenerico);
+                    if (monto <= 0) {
                         alert('Ingrese un monto válido para el artículo varios.');
                         return false;
                     }
@@ -3012,8 +3019,8 @@
                 },
 
                 async procesarMontoGenericoEnter() {
-                    let monto = parseFloat(this.montoGenerico);
-                    if (!isNaN(monto) && monto > 0) {
+                    let monto = this.parseMonto(this.montoGenerico);
+                    if (monto > 0) {
                         this.agregarArticuloGenerico(false);
                         if (this.esTrelew || this.esCredito) {
                             if (!this.clienteSeleccionado) {

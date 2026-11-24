@@ -242,5 +242,76 @@
 
     <x-notification-modal />
 
+    <!-- Soporte universal para teclado numérico (punto decimal y coma) en todos los inputs numéricos -->
+    <script>
+        (function() {
+            function normalizarLangInputs(root) {
+                (root || document).querySelectorAll('input[type="number"], input[inputmode="decimal"]').forEach(function(el) {
+                    if (!el.getAttribute('lang')) {
+                        el.setAttribute('lang', 'en-US');
+                    }
+                });
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function() { normalizarLangInputs(); });
+            } else {
+                normalizarLangInputs();
+            }
+
+            document.addEventListener('focusin', function(e) {
+                var el = e.target;
+                if (el && el.tagName === 'INPUT' && (el.type === 'number' || el.getAttribute('inputmode') === 'decimal')) {
+                    if (!el.getAttribute('lang')) {
+                        el.setAttribute('lang', 'en-US');
+                    }
+                }
+            }, true);
+
+            document.addEventListener('keydown', function(e) {
+                var el = e.target;
+                if (!el || el.tagName !== 'INPUT') return;
+
+                var isDecimalInput = (el.type === 'number' || el.getAttribute('inputmode') === 'decimal');
+                if (!isDecimalInput) return;
+
+                if (!el.getAttribute('lang')) {
+                    el.setAttribute('lang', 'en-US');
+                }
+
+                // Detectar si presionó el punto del teclado numérico o una coma
+                var isNumpadDot = (e.code === 'NumpadDecimal' || e.keyCode === 110 || (e.key === '.' && e.location === 3));
+                var isComma = (e.key === ',' || e.keyCode === 188);
+
+                if (isNumpadDot || isComma) {
+                    // Evitar que el navegador descarte o bloquee la tecla según el locale
+                    e.preventDefault();
+
+                    // Intentar insertar '.' vía execCommand (mantiene el historial undo y dispara eventos input de Alpine)
+                    var ok = false;
+                    try {
+                        ok = document.execCommand('insertText', false, '.');
+                    } catch (err) {}
+
+                    // Si execCommand falló en type=number con locale estricto, probar con coma
+                    if (!ok) {
+                        try {
+                            ok = document.execCommand('insertText', false, ',');
+                        } catch (err) {}
+                    }
+
+                    // Fallback directo sobre value si ambos execCommand fueron bloqueados
+                    if (!ok) {
+                        var val = el.value || '';
+                        if (val.indexOf('.') === -1 && val.indexOf(',') === -1) {
+                            el.value = val + '.';
+                            el.dispatchEvent(new Event('input', { bubbles: true }));
+                            el.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+                    }
+                }
+            }, true);
+        })();
+    </script>
 </body>
 </html>
