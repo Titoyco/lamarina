@@ -1,5 +1,5 @@
 <x-app-layout>
-    <div class="max-w-5xl mx-auto py-2 space-y-6" x-data="{ modalAjuste: false, modalTraslado: false, modalEtiquetas: false, tipoAjuste: 'alta', etiquetaCantidad: 1, etiquetaMotivo: 'Etiqueta rota / dañada en salón', sucursalSeleccionada: {{ config('app.sucursal_activa.id') ?? 1 }} }">
+    <div class="max-w-5xl mx-auto py-2 space-y-6" x-data="{ modalAjuste: false, modalTraslado: false, modalEtiquetas: false, tipoAjuste: 'alta', etiquetaCantidad: 1, etiquetaMotivo: 'Etiqueta rota / dañada en salón', sucursalSeleccionada: {{ data_get(config('app.sucursal_activa'), 'id', 1) }} }">
         
         {{-- Encabezado del Producto --}}
         <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800 gap-3">
@@ -479,7 +479,7 @@
                         <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Sucursal Origen (Emisora)</label>
                         <select name="sucursal_origen_id" required class="w-full text-xs py-1.5 px-2.5 rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white font-medium">
                             @foreach($sucursales as $suc)
-                                <option value="{{ $suc->id }}" {{ (int)config('app.sucursal_activa.id') === $suc->id ? 'selected' : '' }}>
+                                <option value="{{ $suc->id }}" {{ (int)data_get(config('app.sucursal_activa'), 'id', 1) === $suc->id ? 'selected' : '' }}>
                                     {{ $suc->nombre }} (Stock: {{ $producto->getStockSucursal($suc->id) }})
                                 </option>
                             @endforeach
@@ -490,7 +490,7 @@
                         <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Sucursal Destino (Receptora)</label>
                         <select name="sucursal_destino_id" required class="w-full text-xs py-1.5 px-2.5 rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white font-medium">
                             @foreach($sucursales as $suc)
-                                <option value="{{ $suc->id }}" {{ (int)config('app.sucursal_activa.id') !== $suc->id ? 'selected' : '' }}>
+                                <option value="{{ $suc->id }}" {{ (int)data_get(config('app.sucursal_activa'), 'id', 1) !== $suc->id ? 'selected' : '' }}>
                                     {{ $suc->nombre }}
                                 </option>
                             @endforeach

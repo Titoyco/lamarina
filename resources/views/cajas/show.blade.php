@@ -21,7 +21,7 @@
                         </span>
                     </div>
                     <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                        Jornada del <strong>{{ $caja->fecha_apertura->format('d/m/Y') }}</strong> • Apertura: {{ $caja->fecha_apertura->format('H:i') }} hs @if($caja->fecha_cierre) • Cierre: {{ $caja->fecha_cierre->format('H:i') }} hs @endif
+                        Jornada del <strong>{{ $caja->fecha_apertura ? $caja->fecha_apertura->format('d/m/Y') : '-' }}</strong> • Apertura: {{ $caja->fecha_apertura ? $caja->fecha_apertura->format('H:i') : '-' }} hs @if($caja->fecha_cierre) • Cierre: {{ $caja->fecha_cierre->format('H:i') }} hs @endif
                     </p>
                 </div>
             </div>

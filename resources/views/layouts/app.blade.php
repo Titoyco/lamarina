@@ -118,7 +118,7 @@
                                     class="bg-blue-900/90 dark:bg-slate-800 hover:bg-blue-900 dark:hover:bg-slate-700 text-white text-xs font-black border border-blue-500 dark:border-slate-600 rounded-lg py-1 px-2 focus:ring-2 focus:ring-amber-400 cursor-pointer transition-all shadow-sm">
                                     @foreach(\App\Models\Sucursal::all() as $suc)
                                         <option value="{{ $suc->id }}" 
-                                            {{ (int)config('app.sucursal_activa.id') === (int)$suc->id ? 'selected' : '' }}>
+                                            {{ (int)data_get(config('app.sucursal_activa'), 'id', 1) === (int)$suc->id ? 'selected' : '' }}>
                                             {{ $suc->nombre }}
                                         </option>
                                     @endforeach
@@ -130,7 +130,7 @@
                             <p class="text-[9px] uppercase text-blue-300 dark:text-slate-400 font-black leading-none mb-1 tracking-tighter">Sucursal Asignada</p>
                             <div class="flex items-center gap-1.5 text-xs font-black text-white bg-blue-900/70 dark:bg-slate-800 border border-blue-600 dark:border-slate-700 rounded-lg py-1 px-2 shadow-sm">
                                 <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-                                <span>{{ config('app.sucursal_activa.nombre') ?? Auth::user()->sucursal?->nombre ?? 'Sin sucursal' }}</span>
+                                <span>{{ data_get(config('app.sucursal_activa'), 'nombre') ?? Auth::user()->sucursal?->nombre ?? 'Sin sucursal' }}</span>
                             </div>
                         </div>
                         @endif

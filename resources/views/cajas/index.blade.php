@@ -67,7 +67,7 @@
                                 </span>
                             </div>
                             <p class="text-xs text-slate-600 dark:text-slate-300">
-                                Apertura: <strong>{{ $cajaActiva->fecha_apertura->format('d/m/Y H:i') }} hs</strong> por <strong>{{ $cajaActiva->usuarioApertura?->name ?? 'Usuario' }}</strong>
+                                Apertura: <strong>{{ $cajaActiva->fecha_apertura ? $cajaActiva->fecha_apertura->format('d/m/Y H:i') : '-' }} hs</strong> por <strong>{{ $cajaActiva->usuarioApertura?->name ?? 'Usuario' }}</strong>
                                 @if($cajaActiva->observaciones_apertura)
                                     • <span class="italic text-slate-500">"{{ $cajaActiva->observaciones_apertura }}"</span>
                                 @endif
@@ -117,7 +117,7 @@
                     </div>
                     <div>
                         <h2 class="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight">
-                            No hay caja abierta para {{ $sucursales->firstWhere('id', $sucursalFiltro)?->nombre ?? $sucursalActiva->nombre ?? 'la sucursal' }}
+                            No hay caja abierta para {{ $sucursales->firstWhere('id', $sucursalFiltro)?->nombre ?? $sucursalActiva?->nombre ?? 'la sucursal' }}
                         </h2>
                         <p class="text-xs text-slate-500 mt-0.5">
                             Inicie una apertura de caja con el fondo en efectivo correspondiente para habilitar las ventas.
@@ -373,10 +373,10 @@
                                 </td>
                                 <td class="py-3 px-3">
                                     <div class="font-bold text-slate-900 dark:text-white">
-                                        {{ $caja->fecha_apertura->format('d/m/Y') }}
+                                        {{ $caja->fecha_apertura ? $caja->fecha_apertura->format('d/m/Y') : '-' }}
                                     </div>
                                     <div class="text-[10px] text-slate-500">
-                                        {{ $caja->fecha_apertura->format('H:i') }} - {{ $caja->fecha_cierre ? $caja->fecha_cierre->format('H:i') : 'En curso' }}
+                                        {{ $caja->fecha_apertura ? $caja->fecha_apertura->format('H:i') : '-' }} - {{ $caja->fecha_cierre ? $caja->fecha_cierre->format('H:i') : 'En curso' }}
                                     </div>
                                 </td>
                                 <td class="py-3 px-3 text-right font-mono">

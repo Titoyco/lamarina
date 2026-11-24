@@ -1,5 +1,5 @@
 @php
-    $sucursalIdActual = config('app.sucursal_activa.id') ?? Auth::user()->id_sucursal ?? 1;
+    $sucursalIdActual = data_get(config('app.sucursal_activa'), 'id') ?? Auth::user()->id_sucursal ?? 1;
     $puntosVentaTerminal = \App\Models\PuntoVenta::where('id_sucursal', $sucursalIdActual)
         ->where('activo', true)
         ->orderBy('numero')

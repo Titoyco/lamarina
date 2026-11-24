@@ -37,7 +37,7 @@
             <label for="id_sucursal" class="block text-[9px] font-bold text-slate-500 uppercase mb-0.5">Sucursal de Alta <span class="text-rose-600">*</span></label>
             <select name="id_sucursal" id="id_sucursal" required class="block w-full text-xs py-1.5 px-2 rounded border-slate-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm font-semibold">
                 @foreach($sucursales as $sucursal)
-                    <option value="{{ $sucursal->id }}" {{ old('id_sucursal', $cliente->id_sucursal ?? config('app.sucursal_activa')->id ?? 1) == $sucursal->id ? 'selected' : '' }}>
+                    <option value="{{ $sucursal->id }}" {{ old('id_sucursal', $cliente->id_sucursal ?? data_get(config('app.sucursal_activa'), 'id', 1)) == $sucursal->id ? 'selected' : '' }}>
                         {{ $sucursal->nombre }} ({{ $sucursal->codigo_sucursal }})
                     </option>
                 @endforeach

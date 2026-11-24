@@ -130,7 +130,7 @@
         <div class="center border-bottom">
             <div class="h2">CIERRE DE CAJA (CIERRE Z) #{{ $caja->id }}</div>
             <div>Fecha Cierre: <strong>{{ $caja->fecha_cierre ? $caja->fecha_cierre->format('d/m/Y H:i:s') : 'EN CURSO' }}</strong></div>
-            <div>Apertura: {{ $caja->fecha_apertura->format('d/m/Y H:i:s') }}</div>
+            <div>Apertura: {{ $caja->fecha_apertura ? $caja->fecha_apertura->format('d/m/Y H:i:s') : '-' }}</div>
         </div>
 
         <!-- Operadores -->

@@ -58,7 +58,7 @@
             <div>
                 <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">Jurisdicción Activa</span>
                 <span class="text-sm font-bold text-slate-800 dark:text-slate-100">
-                    {{ config('app.sucursal_activa')->nombre ?? 'Sucursal' }} — {{ $provinciaActivaNombre }}
+                    {{ data_get(config('app.sucursal_activa'), 'nombre', 'Sucursal') }} — {{ $provinciaActivaNombre }}
                 </span>
                 <p class="text-[10px] text-slate-400 dark:text-slate-500">Los cobros se emiten con numeración correlativa oficial de la sucursal.</p>
             </div>

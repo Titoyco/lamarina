@@ -381,7 +381,7 @@
                         </span>
                     </h1>
                     <p class="text-xs text-slate-500 mt-0.5">
-                        Sucursal: <strong>{{ $caja->sucursal?->nombre }}</strong> • Apertura: <strong>{{ $caja->fecha_apertura->format('d/m/Y H:i') }} hs</strong> por <strong>{{ $caja->usuarioApertura?->name }}</strong>
+                        Sucursal: <strong>{{ $caja->sucursal?->nombre }}</strong> • Apertura: <strong>{{ $caja->fecha_apertura ? $caja->fecha_apertura->format('d/m/Y H:i') : '-' }} hs</strong> por <strong>{{ $caja->usuarioApertura?->name }}</strong>
                     </p>
                 </div>
             </div>
